@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR. The frontend exists but only covers setup and auth: login, register, a protected route and a placeholder home page. No catalog, cart or admin screens yet, and no frontend tests. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend exists but only covers setup and auth: login, register, a protected route and a placeholder home page. No catalog, cart or admin screens yet, and no frontend tests. Not deployed anywhere.
 
 Repository layout
 
@@ -23,7 +23,7 @@ This is a monorepo. Everything backend lives under backend/ — paths in this do
 │   ├── src/
 │   ├── package.json  # its own deps, its own TypeScript
 │   └── .env          # VITE_API_URL, never committed
-├── .github/          # CI lives at the root, steps run with working-directory: backend
+├── .github/          # CI at the root: parallel backend and frontend jobs
 ├── .gitignore
 ├── CLAUDE.md
 └── README.md
@@ -225,7 +225,9 @@ Tests live in backend/src/__tests__/ and run from backend/ with npm test.
 backend/src/app.ts exports the app precisely so Supertest can import it without binding a port. Keep the split.
 Tests must be order-independent and repeatable: clean up rows created by each test. A suite that only passes in one order is a broken suite.
 DATABASE_URL comes from the environment (backend/.env locally, job-level env in CI). Never hardcode the Supabase URL — CI points at an ephemeral Postgres service container.
-CI is .github/workflows/ci.yml at the repo root. Its backend steps rely on defaults.run.working-directory: backend; that does NOT apply to action inputs, so setup-node's npm cache names backend/package-lock.json explicitly.
+CI is .github/workflows/ci.yml at the repo root, with two independent jobs that run in parallel: backend (Postgres service, migrate deploy, tsc --noEmit, vitest) and frontend (lint, build). Neither needs the other — a frontend type error and a backend test failure are separate signals, and chaining them would hide one behind the other.
+Each job sets defaults.run.working-directory. That does NOT apply to action inputs, so setup-node's npm cache names backend/package-lock.json or frontend/package-lock.json explicitly.
+The frontend job must set VITE_API_URL. Without it the bundler tree-shakes the whole app away (see frontend invariant 3) and the build passes on an empty bundle.
 The concurrent-order test (two requests, stock = 1, expect exactly one 201 and one 409) covers the single most important behavior here. If it turns out flaky in CI, mark it .skip with a comment explaining why — do not delete it.
 Known gaps
 
@@ -237,6 +239,6 @@ price serializes as a JSON string ("39.99", and 32.50 → "32.5"). That's Prisma
 No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal.
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
 No payment integration, not deployed.
-The frontend has no automated tests and is not covered by CI — the workflow builds and tests backend/ only.
+The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour — the auth loop has only ever been checked by hand.
 The frontend covers auth only. No catalog, cart, order history or admin screens yet.
 The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.
