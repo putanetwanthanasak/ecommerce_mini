@@ -2,11 +2,13 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // Every test file talks to the same Postgres. Files run in separate workers,
-    // each with its own Prisma client and connection pool; running them serially
-    // keeps the connection count low and stops one file's fixtures from racing
-    // another's. The suite is small — the wall-clock cost is a few seconds.
-    fileParallelism: false,
+    // File parallelism is left at Vitest's default. Every file talks to the same
+    // Postgres, but each seeds its own fixtures under random identifiers and only
+    // ever asserts on rows it created, so parallel workers don't interfere.
+    // If that ever stops holding — or the database runs out of connections, since
+    // each worker opens its own Prisma pool — run with --no-file-parallelism
+    // before restructuring the tests.
+    //
     // The concurrent-order test deliberately makes one request wait on a row lock,
     // and the order transaction itself is configured with a 15s timeout. The 5s
     // default would fail the test before the code under test had a chance to.
