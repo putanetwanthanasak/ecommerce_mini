@@ -1,0 +1,64 @@
+name: CI
+
+# Any branch, plus every PR — a feature branch must be green before it is merged.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # Ephemeral Postgres for this run only. The suite never touches the
+      # Supabase dev database; DATABASE_URL below points here.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ecommerce_test
+        ports:
+          - 5432:5432
+        # The container is up long before Postgres accepts connections. Without
+        # this gate, `prisma migrate deploy` races the server and fails.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_test?schema=public
+      JWT_SECRET: ci-only-test-secret-not-used-anywhere-else
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      # Before the tests, not after: `npm run dev` uses --transpile-only and never
+      # type-checks, so this is the only thing that catches a type error — and it
+      # fails in seconds instead of after the whole suite has run.
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
