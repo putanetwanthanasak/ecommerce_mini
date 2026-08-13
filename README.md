@@ -1,5 +1,7 @@
 # E-commerce Mini Platform — Backend
 
+![CI](https://github.com/putanetwanthanasak/ecommerce_mini/actions/workflows/ci.yml/badge.svg)
+
 ## Day 1 deliverable
 - Prisma schema (User, Category, Product, Order, OrderItem) with proper relations & indexes
 - Auth: register / login with bcrypt password hashing + JWT

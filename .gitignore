@@ -1,12 +1,18 @@
-# Environment
+# Monorepo layout: backend/ and (soon) frontend/ each have their own node_modules,
+# build output and .env. None of the patterns below start with a slash, so git
+# matches them at ANY depth — backend/.env and frontend/node_modules/ are already
+# covered. Adding a leading slash to any of these would silently un-ignore the
+# workspace copies, so don't.
+
+# Environment — covers backend/.env, frontend/.env
 .env
 .env.local
 .env.*.local
 
-# Dependencies
+# Dependencies — covers backend/node_modules/, frontend/node_modules/
 node_modules/
 
-# Build output
+# Build output — covers backend/dist/ (tsc) and frontend/dist/ (Vite)
 dist/
 build/
 
@@ -26,5 +32,4 @@ Thumbs.db
 .claude/
 
 
-CLAUDE.md
 CODE_GUIDE.MD
