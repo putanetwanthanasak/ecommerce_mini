@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR. The repo has been restructured into a monorepo to make room for a frontend; frontend/ does not exist yet. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR. The frontend exists but only covers setup and auth: login, register, a protected route and a placeholder home page. No catalog, cart or admin screens yet, and no frontend tests. Not deployed anywhere.
 
 Repository layout
 
@@ -19,13 +19,18 @@ This is a monorepo. Everything backend lives under backend/ — paths in this do
 │   ├── package.json  # backend deps; there is no root package.json
 │   ├── .env          # never committed
 │   └── CODE_GUIDE.md
-├── frontend/         # not created yet
+├── frontend/         # Vite + React + TS SPA (auth only so far)
+│   ├── src/
+│   ├── package.json  # its own deps, its own TypeScript
+│   └── .env          # VITE_API_URL, never committed
 ├── .github/          # CI lives at the root, steps run with working-directory: backend
 ├── .gitignore
 ├── CLAUDE.md
 └── README.md
 
-There is no workspace tool (npm workspaces, Turborepo, pnpm) and no root package.json — each app installs and runs on its own. Run npm commands from inside backend/, not from the repo root.
+There is no workspace tool (npm workspaces, Turborepo, pnpm) and no root package.json — each app installs and runs on its own. Run npm commands from inside backend/ or frontend/, never from the repo root.
+
+The two sides do NOT share a TypeScript version. backend is pinned to 5.7 for the ts-node reason below; frontend came off the Vite template on TypeScript 6 and has its own node_modules. That is fine precisely because they are separate packages — do not try to hoist or unify them.
 
 Stack
 Layer	Choice
@@ -35,7 +40,8 @@ ORM	Prisma 6 (pinned)
 Database	PostgreSQL (Supabase-hosted in dev)
 Validation	Zod
 Auth	JWT (jsonwebtoken) + bcrypt (bcryptjs)
-Tests	Vitest + Supertest
+Tests	Vitest + Supertest (backend only)
+Frontend	Vite + React 19 + TS, Tailwind 4, React Router 7, TanStack Query 5
 Pinned versions — do not upgrade casually
 Prisma is pinned to ^6.16.0. Prisma 7 dropped datasource { url = env(...) } in schema.prisma and requires a prisma.config.ts plus a driver adapter. Upgrading means rewriting the schema config and the client setup.
 TypeScript is pinned to 5.7, @types/node to 22.10. ts-node@10.9.2 (used by ts-node-dev) crashes on the TypeScript 7 API with ts.sys undefined.
@@ -55,6 +61,16 @@ npm test                 # vitest run
 npx tsc --noEmit         # type check — run before every commit
 npx prisma migrate dev   # create + apply a migration after editing schema.prisma
 npx prisma studio        # browse the DB visually
+
+And from frontend/:
+
+bash
+cd frontend
+npm run dev              # Vite dev server on :5173
+npm run build            # tsc -b && vite build
+npm run lint             # oxlint
+
+Local dev needs both running: the backend on :4000 and Vite on :5173, with frontend/.env pointing VITE_API_URL at the backend.
 
 npm run dev uses --transpile-only, which skips type checking entirely. Code with type errors will run fine in dev and fail at build time. Always run npx tsc --noEmit before committing.
 
@@ -152,6 +168,36 @@ Order history must survive a price change. Never resolve a historical order's li
 
 Deleting a category with products, or a product with order items, returns 409. Check the child count before the delete rather than letting a constraint error surface.
 
+Frontend invariants
+
+Same idea as above: these encode decisions that are easy to undo by accident.
+
+1. 401 and 403 are not the same failure
+
+Handled centrally in frontend/src/lib/api.ts. A 401 on an authenticated request means the token is gone or expired, so the session is cleared and ProtectedRoute lands the user on /login. A 403 means the token is fine and the action simply isn't allowed — it must NOT sign the user out. Swapping these turns "you can't do that" into "you've been logged out", which is the most common bug in this layer.
+
+The 401 rule is scoped to requests that actually carried a token. Login and register call apiRequest with auth: false, because a 401 there means "wrong password", not "session expired".
+
+2. Validation errors are rendered per field
+
+The backend returns { error: "Validation failed", details: [{ path, message }] }. ApiError.fieldErrors maps path to message so FormField can show it under the right input; ErrorBanner takes the fields a form renders and surfaces only what's left over, so nothing the backend sent is dropped and the user never just sees "Validation failed".
+
+3. The API base URL is configuration
+
+frontend/src/lib/api.ts reads VITE_API_URL and throws at module load if it is missing. Never hardcode a host.
+
+4. The token is in localStorage, and that is a known exposure
+
+frontend/src/lib/token.ts carries the full reasoning. Any injected script can read it, and a 1-day JWT cannot be revoked. It was chosen for simplicity; httpOnly cookies are the production answer. Don't quietly present it as ideal.
+
+5. decodeToken is for UI only
+
+It reads the role claim without verifying the signature, purely so the UI can branch on admin vs customer. Every real authorization decision is the backend's.
+
+6. There is no role selector on register
+
+POST /api/auth/register always creates a CUSTOMER — the backend never reads a role from the body. A selector would imply an escalation path that doesn't exist. Admins are promoted directly in the database.
+
 Conventions
 Status codes
 Code	Meaning
@@ -190,4 +236,7 @@ No refresh tokens. A 1-day JWT can't be revoked; logout is client-side only.
 price serializes as a JSON string ("39.99", and 32.50 → "32.5"). That's Prisma's Decimal behavior. A frontend must Number() it and format trailing zeros.
 No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal.
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
-No payment integration, no frontend, not deployed.
+No payment integration, not deployed.
+The frontend has no automated tests and is not covered by CI — the workflow builds and tests backend/ only.
+The frontend covers auth only. No catalog, cart, order history or admin screens yet.
+The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.
