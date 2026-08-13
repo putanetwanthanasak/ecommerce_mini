@@ -8,8 +8,16 @@ on:
     branches: ["**"]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
+
+    # Monorepo: every `run` step below executes inside backend/, where
+    # package.json, prisma/ and the test suite live. This applies to `run` only —
+    # action inputs (see the npm cache path below) still resolve from the repo
+    # root and have to name backend/ explicitly.
+    defaults:
+      run:
+        working-directory: backend
 
     services:
       # Ephemeral Postgres for this run only. The suite never touches the
@@ -44,6 +52,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # `defaults.run.working-directory` does not reach action inputs, so the
+          # lockfile has to be named from the repo root or the cache step fails.
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
