@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend exists but only covers setup and auth: login, register, a protected route and a placeholder home page. No catalog, cart or admin screens yet, and no frontend tests. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing) and the customer-facing catalog: a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page. No cart, checkout, order history or admin screens yet, and no frontend tests. Not deployed anywhere.
 
 Repository layout
 
@@ -19,7 +19,7 @@ This is a monorepo. Everything backend lives under backend/ — paths in this do
 │   ├── package.json  # backend deps; there is no root package.json
 │   ├── .env          # never committed
 │   └── CODE_GUIDE.md
-├── frontend/         # Vite + React + TS SPA (auth only so far)
+├── frontend/         # Vite + React + TS SPA (auth + catalog so far)
 │   ├── src/
 │   ├── package.json  # its own deps, its own TypeScript
 │   └── .env          # VITE_API_URL, never committed
@@ -198,6 +198,14 @@ It reads the role claim without verifying the signature, purely so the UI can br
 
 POST /api/auth/register always creates a CUSTOMER — the backend never reads a role from the body. A selector would imply an escalation path that doesn't exist. Admins are promoted directly in the database.
 
+7. Prices are formatted in exactly one place
+
+price arrives as a JSON string and is not display-ready: Postgres drops trailing zeros, so 32.50 comes back as "32.5" and 38.00 as "38". frontend/src/lib/money.ts owns the only conversion — components call formatPrice(product.price) and never touch the raw value. Scattering Number() and .toFixed(2) through components is how "$32.5" ends up next to "$39.99" on the same row. When a cart arrives and money needs adding up, the arithmetic belongs here too, not in a component.
+
+8. The catalog's page, search and category live in the URL
+
+frontend/src/catalog/useCatalogParams.ts reads them from the query string and writes changes back; there is no component state mirroring them. That is what makes a filtered view shareable, refresh-safe and back-button-correct. Two details it encodes: empty values are dropped rather than sent blank, because the backend validates search as min(1) and categoryId as a UUID, so ?search= is a 400 rather than "no filter"; and a hand-edited ?page=0 is clamped to 1 instead of being forwarded as a guaranteed 400. Any filter change resets to page 1.
+
 Conventions
 Status codes
 Code	Meaning
@@ -235,10 +243,10 @@ Real, not oversights to be fixed while doing something else:
 
 No rate limiting. /api/auth/login can be brute-forced.
 No refresh tokens. A 1-day JWT can't be revoked; logout is client-side only.
-price serializes as a JSON string ("39.99", and 32.50 → "32.5"). That's Prisma's Decimal behavior. A frontend must Number() it and format trailing zeros.
+price serializes as a JSON string ("39.99", 32.50 → "32.5", 38.00 → "38"). That's Prisma's Decimal behavior. The frontend handles it in lib/money.ts — see frontend invariant 7.
 No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal.
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
 No payment integration, not deployed.
-The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour — the auth loop has only ever been checked by hand.
-The frontend covers auth only. No catalog, cart, order history or admin screens yet.
+The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour — the auth loop and the catalog have only ever been checked by hand.
+The frontend covers auth and the product catalog (browse, search, category filter, pagination, product detail). No cart, checkout, order history or admin screens yet.
 The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.
