@@ -73,3 +73,50 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # Deliberately has no `needs:` — it runs alongside the backend job rather than
+  # after it. A frontend type error and a backend test failure are independent
+  # signals, and gating this on the backend would hide one behind the other.
+  # No Postgres either: nothing here touches a database.
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      # Required, even though nothing is deployed from CI.
+      #
+      # src/lib/api.ts throws at module load when VITE_API_URL is unset. Vite
+      # inlines the variable at build time, so with it missing the bundler can
+      # prove the throw always fires, marks the rest of the app unreachable and
+      # tree-shakes it away — the build then exits 0 having emitted a bundle
+      # with none of the application in it. Verified: without this, every app
+      # string disappears from dist/ and the bundle drops ~50 kB. The value is a
+      # placeholder purely to keep the build representative.
+      VITE_API_URL: http://localhost:4000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          # As in the backend job: action inputs don't see working-directory.
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `npm run build` is `tsc -b && vite build`, so this is the frontend's
+      # type check as well as its bundle — the equivalent of the backend's
+      # separate tsc --noEmit step.
+      - name: Build
+        run: npm run build
