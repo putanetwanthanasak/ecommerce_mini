@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing), the customer-facing catalog (a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page), and the buying path: a client-side cart at /cart, checkout at /checkout, and an order confirmation at /orders/:id. No order history list or admin screens yet, and no frontend tests. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing), the customer-facing catalog (a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page), the buying path (a client-side cart at /cart, checkout at /checkout), and the customer's order records: a paginated history at /orders and a single order at /orders/:id, which doubles as the post-checkout confirmation. No admin screens yet, and no frontend tests. Not deployed anywhere.
 
 Repository layout
 
@@ -19,7 +19,7 @@ This is a monorepo. Everything backend lives under backend/ — paths in this do
 │   ├── package.json  # backend deps; there is no root package.json
 │   ├── .env          # never committed
 │   └── CODE_GUIDE.md
-├── frontend/         # Vite + React + TS SPA (auth + catalog so far)
+├── frontend/         # Vite + React + TS SPA (auth, catalog, cart/checkout, orders)
 │   ├── src/
 │   ├── package.json  # its own deps, its own TypeScript
 │   └── .env          # VITE_API_URL, never committed
@@ -218,7 +218,23 @@ frontend/src/orders/checkoutError.ts classifies the ApiError into what the user 
 
 The backend has no idempotency key: two identical concurrent POSTs create two orders and decrement stock twice — confirmed against the running API. The disabled button plus the `inFlight` ref in CheckoutPage is the only thing preventing a double-click from doing that.
 
-12. The catalog's page, search and category live in the URL
+12. The order history never sends a userId
+
+GET /api/orders pins a customer's query to the id in their token and consults ?userId= only on the admin branch. frontend/src/orders/ordersApi.ts therefore has no way to express one — not because it would be honoured (it would be ignored), but because a "whose orders?" knob in the client implies the answer is the frontend's to give. Ownership is decided server-side, from the token. The same reasoning is why /orders/:id renders a distinct "you don't have access to this order" state on a 403 instead of a raw error, and must never sign the user out for it (see invariant 1).
+
+13. Anything shown about a past order comes from the order
+
+priceAtPurchase and totalPrice, never product.price. This is the same rule as backend invariant 6, and history is exactly where it bites: the two prices have had time to drift apart, so an order rendered through today's product price shows a number nobody was ever charged and a total that no longer matches its own lines. Confirmed against the running API — a product repriced 38.00 → 99.99 leaves its existing orders reading 38.00.
+
+14. Pagination and PageInfo are shared, not the catalog's
+
+components/Pagination.tsx and lib/pagination.ts sit outside catalog/ because the order history pages through the identical envelope. They were moved there rather than copied the moment a second list needed them; readPositiveInt is shared for the same reason, and it is what keeps a hand-edited ?page=0 from reaching the backend as a guaranteed 400.
+
+15. /orders/:id is one page for two arrivals
+
+It is the post-checkout confirmation and the history detail view, and everything except one banner is identical in both. Checkout passes `state: { justPlaced: true }` on the navigation; that flag is the only thing that renders "Order placed — stock has been reserved". The flag has to exist: that sentence is true for one moment, and printing it above a month-old CANCELLED order would be plainly false, while dropping it would mean a customer finishes paying and gets no confirmation.
+
+16. The catalog's page, search and category live in the URL
 
 frontend/src/catalog/useCatalogParams.ts reads them from the query string and writes changes back; there is no component state mirroring them. That is what makes a filtered view shareable, refresh-safe and back-button-correct. Two details it encodes: empty values are dropped rather than sent blank, because the backend validates search as min(1) and categoryId as a UUID, so ?search= is a 400 rather than "no filter"; and a hand-edited ?page=0 is clamped to 1 instead of being forwarded as a guaranteed 400. Any filter change resets to page 1.
 
@@ -264,6 +280,7 @@ No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
 No payment integration, not deployed.
 The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour. The cart/checkout logic was deliberately factored into pure modules (cart/cartOps.ts, cart/cartStorage.ts, orders/checkoutError.ts, lib/money.ts) that a test suite can exercise without a DOM — that is where frontend tests should start.
-The frontend covers auth, the product catalog (browse, search, category filter, pagination, product detail), and the buying path (cart, checkout, order confirmation). No order history list or admin screens yet.
+The frontend covers auth, the product catalog, the buying path (cart, checkout) and the customer's order records (history list, order detail). No admin screens yet, and the customer can only read orders — no cancelling from the UI.
+A failed list fetch does not surface its error state in the browser. Both /products and /orders make one request, and when it fails they sit on the skeleton (or keep showing the previous page) instead of rendering ErrorBanner — the retry configured in main.tsx never fires a second attempt. Verified on both lists with an injected 500, so it is a pre-existing condition in the shared QueryClient setup, not something either page introduced. The error branches themselves are written and correct; nothing reaches them. Worth root-causing before the frontend is considered done.
 No idempotency on POST /api/orders. A retried or duplicated request creates a second order; only the client's in-flight guard prevents it.
 The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.

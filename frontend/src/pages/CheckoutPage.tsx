@@ -59,7 +59,11 @@ export function CheckoutPage() {
       clear();
       // `replace` so Back from the confirmation doesn't land on a checkout page
       // whose cart has just been emptied.
-      navigate(`/orders/${order.id}`, { replace: true });
+      //
+      // `justPlaced` is what tells the order page to show its success banner.
+      // The same route is reached from the history list, where "Order placed"
+      // would be false, so the page cannot infer this from the URL alone.
+      navigate(`/orders/${order.id}`, { replace: true, state: { justPlaced: true } });
     },
 
     onError: async (error) => {

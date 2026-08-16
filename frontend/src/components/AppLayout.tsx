@@ -27,6 +27,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Without this the history is reachable only by typing the URL or
+                by having just checked out. */}
+            <Link
+              to="/orders"
+              className="text-sm text-slate-600 underline-offset-4 hover:underline"
+            >
+              Orders
+            </Link>
             {user && (
               <Link
                 to="/account"

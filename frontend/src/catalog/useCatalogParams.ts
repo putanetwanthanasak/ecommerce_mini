@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { readPositiveInt } from "../lib/pagination";
 import type { ProductListParams } from "./catalogApi";
 
 export const DEFAULT_PAGE_SIZE = 12;
@@ -93,17 +94,4 @@ export function useCatalogParams(): CatalogParamsApi {
     setPage,
     clearFilters,
   };
-}
-
-/**
- * Parses a whole number >= 1 from a query param, falling back when the value is
- * missing, blank, fractional, negative or not a number at all.
- */
-function readPositiveInt(raw: string | null, fallback: number, max: number): number {
-  if (raw === null || raw.trim() === "") return fallback;
-
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1) return fallback;
-
-  return Math.min(value, max);
 }

@@ -43,9 +43,11 @@ export function HomePage() {
         <Link to="/products" className="font-medium text-slate-900 underline underline-offset-4">
           Browse the catalog
         </Link>
-        {isAdmin
-          ? " — admin tools (product and order management) land in a later phase."
-          : " — cart and order history land in a later phase."}
+        {" or review "}
+        <Link to="/orders" className="font-medium text-slate-900 underline underline-offset-4">
+          your orders
+        </Link>
+        {isAdmin && " — admin tools (product and order management) land in a later phase."}
       </p>
     </AppLayout>
   );
