@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { catalogKeys, fetchProduct } from "../catalog/catalogApi";
 import { StockBadge } from "../catalog/StockBadge";
 import { ApiError } from "../lib/api";
@@ -100,13 +101,14 @@ export function ProductDetailPage() {
           </div>
         </dl>
 
-        {/* Buying happens in the next phase — saying so beats a dead "Add to
-            cart" button that silently does nothing. */}
-        <p className="mt-6 text-sm text-slate-500">
-          {product.stock > 0
-            ? "Cart and checkout land in a later phase."
-            : "This product is currently unavailable."}
-        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
+          {/* Same control as the grid card, so a click means the same thing on
+              both screens: one more unit. Quantity is edited in the cart. */}
+          <AddToCartButton product={product} />
+          <Link to="/cart" className="text-sm text-slate-600 underline-offset-4 hover:underline">
+            View cart
+          </Link>
+        </div>
       </article>
     );
   }

@@ -1,7 +1,10 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { GuestOnlyRoute, ProtectedRoute } from "./auth/ProtectedRoute";
+import { CartPage } from "./pages/CartPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { OrderConfirmationPage } from "./pages/OrderConfirmationPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { ProductListPage } from "./pages/ProductListPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -37,6 +40,11 @@ export default function App() {
       <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
         <Route path="/products" element={<ProductListPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        {/* One order, straight after placing it. The order *history* list is a
+            later round; this route is the confirmation. */}
+        <Route path="/orders/:id" element={<OrderConfirmationPage />} />
         <Route path="/account" element={<HomePage />} />
       </Route>
 
