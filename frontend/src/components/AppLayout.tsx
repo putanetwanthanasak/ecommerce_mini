@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authContext";
+import { CartBadge } from "../cart/CartBadge";
 
 /**
  * Shell for every signed-in page — the counterpart to AuthLayout.
@@ -39,6 +40,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 Admin
               </span>
             )}
+            <CartBadge />
             <button
               type="button"
               onClick={logout}

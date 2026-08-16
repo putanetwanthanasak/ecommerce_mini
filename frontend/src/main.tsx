@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
+import { CartProvider } from "./cart/CartProvider";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -28,7 +29,12 @@ createRoot(document.getElementById("root")!).render(
           react-router, so it has to sit inside a router context. */}
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          {/* Inside AuthProvider, but deliberately not tied to it: the cart is
+              not cleared when a session ends, so a token expiring mid-checkout
+              doesn't take the user's basket with it. See cart/cartStorage.ts. */}
+          <CartProvider>
+            <App />
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

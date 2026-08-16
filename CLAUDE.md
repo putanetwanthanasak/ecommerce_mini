@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing) and the customer-facing catalog: a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page. No cart, checkout, order history or admin screens yet, and no frontend tests. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing), the customer-facing catalog (a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page), and the buying path: a client-side cart at /cart, checkout at /checkout, and an order confirmation at /orders/:id. No order history list or admin screens yet, and no frontend tests. Not deployed anywhere.
 
 Repository layout
 
@@ -202,7 +202,23 @@ POST /api/auth/register always creates a CUSTOMER — the backend never reads a 
 
 price arrives as a JSON string and is not display-ready: Postgres drops trailing zeros, so 32.50 comes back as "32.5" and 38.00 as "38". frontend/src/lib/money.ts owns the only conversion — components call formatPrice(product.price) and never touch the raw value. Scattering Number() and .toFixed(2) through components is how "$32.5" ends up next to "$39.99" on the same row. When a cart arrives and money needs adding up, the arithmetic belongs here too, not in a component.
 
-8. The catalog's page, search and category live in the URL
+8. The cart's stored price and stock are display-only
+
+There is no cart API. The cart lives in a React context, is persisted to localStorage, and is sent as one payload at checkout. Each line stores `name`, `price` and `stock` alongside `{ productId, quantity }` so the cart renders without a request per row — and none of those three fields prove anything. `POST /api/orders` takes `{ productId, quantity }` and nothing else; the backend reads the price off its own product row inside the order transaction. A `price` or `totalPrice` field must never be added to that request body. The stored `stock` can be days old, so frontend/src/cart/useCartLines.ts re-fetches every product when the cart page mounts and shows shortages inline — it does not silently rewrite quantities, because that changes the user's order behind their back and makes it look like they chose the smaller number. A 404'd line blocks checkout; a shortage does not, since that number is a read that can go stale and the backend's `stock >= quantity` guard is the only real decision.
+
+9. The cart is NOT cleared when the session ends
+
+frontend/src/cart/cartStorage.ts persists it under its own key and nothing in the auth path touches it. That is what makes a token expiring mid-checkout survivable: the user is sent to /login and comes back to the cart they were buying. The tradeoff — a shared browser hands the next person the previous cart — is acceptable only while the cart holds nothing private. If it ever gains an address or a payment detail, it must be namespaced per user or dropped on logout.
+
+10. Every checkout failure names its next action
+
+frontend/src/orders/checkoutError.ts classifies the ApiError into what the user has to do: 409 names the product that ran out (and the live stock is re-fetched so the fix can be "reduce to 1"), 404 carries the product id so that line can be removed, 400 renders the `details[]` messages mapped back to product names rather than a bare "Validation failed", 401 says the cart is safe while the redirect to /login happens. Rendering the raw `error` string for any of these leaves the user re-clicking a button that will keep failing. The 409 match is by product name because the message carries no id — it only ever selects a row to offer a fix on, never edits one.
+
+11. The place-order button is disabled while the request is in flight
+
+The backend has no idempotency key: two identical concurrent POSTs create two orders and decrement stock twice — confirmed against the running API. The disabled button plus the `inFlight` ref in CheckoutPage is the only thing preventing a double-click from doing that.
+
+12. The catalog's page, search and category live in the URL
 
 frontend/src/catalog/useCatalogParams.ts reads them from the query string and writes changes back; there is no component state mirroring them. That is what makes a filtered view shareable, refresh-safe and back-button-correct. Two details it encodes: empty values are dropped rather than sent blank, because the backend validates search as min(1) and categoryId as a UUID, so ?search= is a 400 rather than "no filter"; and a hand-edited ?page=0 is clamped to 1 instead of being forwarded as a guaranteed 400. Any filter change resets to page 1.
 
@@ -247,6 +263,7 @@ price serializes as a JSON string ("39.99", 32.50 → "32.5", 38.00 → "38"). T
 No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal.
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
 No payment integration, not deployed.
-The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour — the auth loop and the catalog have only ever been checked by hand.
-The frontend covers auth and the product catalog (browse, search, category filter, pagination, product detail). No cart, checkout, order history or admin screens yet.
+The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour. The cart/checkout logic was deliberately factored into pure modules (cart/cartOps.ts, cart/cartStorage.ts, orders/checkoutError.ts, lib/money.ts) that a test suite can exercise without a DOM — that is where frontend tests should start.
+The frontend covers auth, the product catalog (browse, search, category filter, pagination, product detail), and the buying path (cart, checkout, order confirmation). No order history list or admin screens yet.
+No idempotency on POST /api/orders. A retried or duplicated request creates a second order; only the client's in-flight guard prevents it.
 The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.
