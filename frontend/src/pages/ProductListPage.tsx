@@ -6,7 +6,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { FormField } from "../components/FormField";
 import { catalogKeys, fetchProducts } from "../catalog/catalogApi";
 import { CategoryFilter } from "../catalog/CategoryFilter";
-import { Pagination } from "../catalog/Pagination";
+import { Pagination } from "../components/Pagination";
 import { ProductCard, ProductCardSkeleton } from "../catalog/ProductCard";
 import { useCatalogParams, DEFAULT_PAGE_SIZE } from "../catalog/useCatalogParams";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -149,7 +149,12 @@ export function ProductListPage() {
         </div>
 
         {pagination && (
-          <Pagination pagination={pagination} onPageChange={setPage} busy={isRefreshing} />
+          <Pagination
+            pagination={pagination}
+            onPageChange={setPage}
+            busy={isRefreshing}
+            label="Product pages"
+          />
         )}
       </div>
     );

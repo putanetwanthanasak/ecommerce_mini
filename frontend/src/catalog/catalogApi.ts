@@ -1,4 +1,5 @@
 import { apiRequest } from "../lib/api";
+import type { PageInfo } from "../lib/pagination";
 
 /** Category as products embed it — `include: { category: { select: { id, name } } }`. */
 export interface CategoryRef {
@@ -22,13 +23,6 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   category: CategoryRef;
-}
-
-export interface PageInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 export interface ProductListResponse {

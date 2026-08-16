@@ -1,4 +1,4 @@
-import type { PageInfo } from "./catalogApi";
+import type { PageInfo } from "../lib/pagination";
 
 const BUTTON =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white";
@@ -8,6 +8,13 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   /** True while a page change is in flight — keeps the user from queueing jumps. */
   busy?: boolean;
+  /**
+   * What is being paged through, for the landmark's accessible name.
+   *
+   * A page with more than one paged list gives screen reader users two
+   * identically-named navigation landmarks, which is no help at all.
+   */
+  label?: string;
 }
 
 /**
@@ -16,8 +23,16 @@ interface PaginationProps {
  * The buttons are disabled at the boundaries rather than clamped after the
  * fact: there is no point issuing a request for page 0 (a 400) or page 99 (an
  * empty list that reads like "no results") when we already know the range.
+ *
+ * It lives in components/ rather than catalog/ because the order history pages
+ * through the identical envelope. A second copy would drift from this one.
  */
-export function Pagination({ pagination, onPageChange, busy = false }: PaginationProps) {
+export function Pagination({
+  pagination,
+  onPageChange,
+  busy = false,
+  label = "Pages",
+}: PaginationProps) {
   const { page, limit, total, totalPages } = pagination;
 
   // One page of results needs no controls at all.
@@ -28,7 +43,7 @@ export function Pagination({ pagination, onPageChange, busy = false }: Paginatio
 
   return (
     <nav
-      aria-label="Product pages"
+      aria-label={label}
       className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5"
     >
       <p className="text-sm text-slate-500">

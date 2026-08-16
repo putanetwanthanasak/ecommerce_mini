@@ -1,4 +1,5 @@
 import { apiRequest } from "../lib/api";
+import type { PageInfo } from "../lib/pagination";
 
 export type OrderStatus = "PENDING" | "PAID" | "SHIPPED" | "CANCELLED";
 
@@ -42,9 +43,45 @@ export interface CreateOrderInput {
   items: Array<{ productId: string; quantity: number }>;
 }
 
+export interface OrderListParams {
+  page: number;
+  limit: number;
+}
+
+export interface OrderListResponse {
+  orders: Order[];
+  pagination: PageInfo;
+}
+
 export const orderKeys = {
   detail: (id: string) => ["order", id] as const,
+  list: (params: OrderListParams) => ["orders", params] as const,
 };
+
+/**
+ * The signed-in customer's own orders, newest first.
+ *
+ * NOTE THE ABSENT `userId` PARAM.
+ *
+ * GET /api/orders pins a customer's query to the id in their token and only
+ * consults `?userId=` on the admin branch (see backend/src/routes/orders.ts).
+ * Sending one from here would achieve nothing for a customer — it is ignored,
+ * not honoured — but it would put a "whose orders?" knob in the client and
+ * imply the answer is the frontend's to give. It isn't. Ownership is decided by
+ * the token, server-side, and this request deliberately has no way to express
+ * an opinion about it.
+ *
+ * The backend already orders by createdAt descending, so there is no sort
+ * parameter either.
+ */
+export function fetchOrders(params: OrderListParams): Promise<OrderListResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit),
+  });
+
+  return apiRequest<OrderListResponse>(`/api/orders?${query.toString()}`);
+}
 
 export function createOrder(input: CreateOrderInput): Promise<Order> {
   return apiRequest<{ order: Order }>("/api/orders", {
