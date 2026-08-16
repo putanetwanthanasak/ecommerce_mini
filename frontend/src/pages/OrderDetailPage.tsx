@@ -106,11 +106,12 @@ export function OrderDetailPage() {
     return (
       <AppLayout>
         <BackToOrders />
-        <div className="mt-6 space-y-4">
-          <ErrorBanner error={query.error} />
-          <button type="button" onClick={() => void query.refetch()} className={ACTION_BUTTON}>
-            Try again
-          </button>
+        <div className="mt-6">
+          <ErrorBanner
+            error={query.error}
+            onRetry={() => void query.refetch()}
+            retrying={query.isFetching}
+          />
         </div>
       </AppLayout>
     );

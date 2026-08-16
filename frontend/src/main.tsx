@@ -7,6 +7,43 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { CartProvider } from "./cart/CartProvider";
 import "./index.css";
 
+/*
+ * Two retries, then give up and let the page render its error state. A read
+ * that has failed three times is not going to come good on a fourth while
+ * someone sits watching a skeleton.
+ */
+const MAX_QUERY_RETRIES = 2;
+
+/*
+ * Backoff, capped. The attempts land at 1s and 2s, so a doomed query settles
+ * into its error state in about three seconds.
+ *
+ * The cap is stated here rather than inherited: TanStack's default ceiling is
+ * 30s, which is the right number for a background sync and far too long for a
+ * person waiting on a list to appear.
+ */
+const RETRY_DELAY_CAP_MS = 3000;
+
+/*
+ * WHY A FAILING QUERY CAN LOOK LIKE IT NEVER SETTLES
+ *
+ * Worth writing down, because it cost a real investigation and looks exactly
+ * like a bug in this config.
+ *
+ * TanStack pauses the gap between retries when the document is hidden —
+ * `focusManager.isFocused()` is `document.visibilityState !== "hidden"`. A
+ * query in that state reports `fetchStatus: "paused"` and keeps
+ * `status: "pending"`, so `isError` never becomes true and the page shows its
+ * skeleton indefinitely. It resumes, retries, and settles the moment the tab
+ * is looked at again.
+ *
+ * That is deliberate library behaviour and it is right: there is no sense
+ * burning retries against a tab nobody is watching. It is NOT something to
+ * switch off here. It does mean that automated checks driving a background tab
+ * will see a query stall forever and conclude the error state is unreachable —
+ * it isn't, it is waiting for focus. Reproduce error states in a visible tab,
+ * or call `focusManager.setFocused(true)` in the harness.
+ */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -15,8 +52,9 @@ const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         const status = (error as { status?: number }).status;
         if (status !== undefined && status >= 400 && status < 500) return false;
-        return failureCount < 2;
+        return failureCount < MAX_QUERY_RETRIES;
       },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, RETRY_DELAY_CAP_MS),
       refetchOnWindowFocus: false,
     },
   },

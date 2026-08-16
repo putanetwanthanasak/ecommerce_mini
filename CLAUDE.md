@@ -238,6 +238,14 @@ It is the post-checkout confirmation and the history detail view, and everything
 
 frontend/src/catalog/useCatalogParams.ts reads them from the query string and writes changes back; there is no component state mirroring them. That is what makes a filtered view shareable, refresh-safe and back-button-correct. Two details it encodes: empty values are dropped rather than sent blank, because the backend validates search as min(1) and categoryId as a UUID, so ?search= is a 400 rather than "no filter"; and a hand-edited ?page=0 is clamped to 1 instead of being forwarded as a guaranteed 400. Any filter change resets to page 1.
 
+17. A failed read settles into an error state, and that state carries the retry
+
+frontend/src/main.tsx sets the policy once for every query: two retries, backoff capped at 3s, and no retry at all on a 4xx (a 401 or 403 will never come good, and retrying only hides it behind a spinner). A doomed read therefore gives up in about three seconds instead of spinning. ErrorBanner takes an optional onRetry and renders the button itself, so "what went wrong" and "try it again" are one component rather than a banner plus a hand-rolled button repeated on every page.
+
+onRetry is deliberately omitted in two places. Login and register are retried by fixing the form and submitting it. Checkout must not offer one at all: POST /api/orders has no idempotency key, so a one-click retry of a request that actually succeeded places a second order (invariant 11).
+
+WHY A FAILING QUERY CAN LOOK LIKE IT NEVER SETTLES — this cost a real investigation, so it is written down in main.tsx too. TanStack pauses the gap between retries while the document is hidden (focusManager.isFocused() is document.visibilityState !== "hidden"). Such a query sits at fetchStatus: "paused" with status: "pending", so isError never becomes true and the page shows its skeleton indefinitely; it resumes and settles the moment the tab is looked at. That is correct library behaviour — there is no point burning retries on a tab nobody is watching — and it is NOT to be switched off. But it means an automated check driving a background tab will watch a query stall forever and conclude the error state is unreachable. It isn't; it is waiting for focus. Reproduce error states in a visible tab, or call focusManager.setFocused(true) in the harness.
+
 Conventions
 Status codes
 Code	Meaning
@@ -281,6 +289,5 @@ No structured logging. console.error only; production wants Pino or Winston with
 No payment integration, not deployed.
 The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour. The cart/checkout logic was deliberately factored into pure modules (cart/cartOps.ts, cart/cartStorage.ts, orders/checkoutError.ts, lib/money.ts) that a test suite can exercise without a DOM — that is where frontend tests should start.
 The frontend covers auth, the product catalog, the buying path (cart, checkout) and the customer's order records (history list, order detail). No admin screens yet, and the customer can only read orders — no cancelling from the UI.
-A failed list fetch does not surface its error state in the browser. Both /products and /orders make one request, and when it fails they sit on the skeleton (or keep showing the previous page) instead of rendering ErrorBanner — the retry configured in main.tsx never fires a second attempt. Verified on both lists with an injected 500, so it is a pre-existing condition in the shared QueryClient setup, not something either page introduced. The error branches themselves are written and correct; nothing reaches them. Worth root-causing before the frontend is considered done.
 No idempotency on POST /api/orders. A retried or duplicated request creates a second order; only the client's in-flight guard prevents it.
 The token is in localStorage. See frontend invariant 4 — this is an accepted XSS exposure, not an oversight.

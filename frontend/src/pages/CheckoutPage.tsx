@@ -297,8 +297,16 @@ function CheckoutProblemNotice({
     );
   }
 
-  // Anything unclassified is a plain message, which is exactly what ErrorBanner
-  // renders. No second copy of that markup.
+  /*
+   * Anything unclassified is a plain message, which is exactly what ErrorBanner
+   * renders. No second copy of that markup.
+   *
+   * Note the absent `onRetry`. ErrorBanner can offer a one-click retry and the
+   * read-only pages use it, but placing an order is not a safe thing to fire
+   * again from a banner: POST /api/orders has no idempotency key, so retrying a
+   * request that actually succeeded would place a second order. The Place order
+   * button below, with its in-flight guard, stays the only way to try again.
+   */
   return <ErrorBanner error={error} />;
 }
 
