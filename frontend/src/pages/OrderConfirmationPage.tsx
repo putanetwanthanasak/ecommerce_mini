@@ -51,12 +51,11 @@ export function OrderConfirmationPage() {
 
     return (
       <AppLayout>
-        <div className="space-y-4">
-          <ErrorBanner error={query.error} />
-          <button type="button" onClick={() => void query.refetch()} className={ACTION_BUTTON}>
-            Try again
-          </button>
-        </div>
+        <ErrorBanner
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
       </AppLayout>
     );
   }
