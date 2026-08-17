@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { Button } from "../components/Button";
+import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { Pagination } from "../components/Pagination";
@@ -9,9 +11,6 @@ import { countOrderItems, shortOrderId } from "../orders/orderDisplay";
 import { OrderStatusBadge } from "../orders/OrderStatusBadge";
 import { fetchOrders, orderKeys, type Order } from "../orders/ordersApi";
 import { useOrderListParams } from "../orders/useOrderListParams";
-
-const ACTION_BUTTON =
-  "inline-block rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 export function OrderListPage() {
   const { params, setPage } = useOrderListParams();
@@ -55,9 +54,7 @@ export function OrderListPage() {
               pagination.total === 1 ? "order" : "orders"
             } across ${pagination.totalPages} ${pagination.totalPages === 1 ? "page" : "pages"}.`}
             action={
-              <button type="button" onClick={() => setPage(1)} className={ACTION_BUTTON}>
-                Back to page 1
-              </button>
+              <Button onClick={() => setPage(1)}>Back to page 1</Button>
             }
           />
         );
@@ -68,7 +65,7 @@ export function OrderListPage() {
           title="No orders yet"
           message="Orders you place will appear here, with what you paid for each item."
           action={
-            <Link to="/products" className={ACTION_BUTTON}>
+            <Link to="/products" className={buttonClass()}>
               Browse the catalog
             </Link>
           }
@@ -80,7 +77,7 @@ export function OrderListPage() {
       <div className="space-y-6">
         <ul
           aria-busy={isRefreshing}
-          className={`divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs transition-opacity ${
+          className={`divide-y divide-hairline overflow-hidden surface transition-opacity ${
             isRefreshing ? "opacity-60" : "opacity-100"
           }`}
         >
@@ -104,9 +101,9 @@ export function OrderListPage() {
   return (
     <AppLayout>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Your orders</h1>
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your orders</h1>
         {pagination && pagination.total > 0 && (
-          <p className="text-sm text-slate-500">
+          <p className="text-meta text-ink-subtle">
             {pagination.total} {pagination.total === 1 ? "order" : "orders"}
           </p>
         )}
@@ -124,13 +121,16 @@ function OrderRow({ order }: { order: Order }) {
     <li>
       <Link
         to={`/orders/${order.id}`}
-        className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-300"
+        // The ring stays inset here rather than using the shared `focus-ring`
+        // utility: these rows are flush inside a bordered list, so an offset
+        // outline would be clipped by the container's overflow-hidden.
+        className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition outline-none hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
       >
         <div className="min-w-40 flex-1">
-          <p className="font-mono text-sm font-medium text-slate-900">
+          <p className="font-mono text-meta font-medium text-ink">
             #{shortOrderId(order.id)}
           </p>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <p className="mt-0.5 text-meta text-ink-subtle">
             <time dateTime={order.createdAt}>
               {new Date(order.createdAt).toLocaleDateString(undefined, {
                 year: "numeric",
@@ -147,7 +147,7 @@ function OrderRow({ order }: { order: Order }) {
 
         {/* The order's own total, recorded when it was placed — never re-derived
             from today's product prices. See frontend invariant 13. */}
-        <span className="w-24 text-right text-sm font-semibold text-slate-900">
+        <span className="figures w-24 text-right text-meta text-ink">
           {formatPrice(order.totalPrice)}
         </span>
       </Link>
@@ -162,7 +162,7 @@ function OrderRow({ order }: { order: Order }) {
 function OrderListSkeleton() {
   return (
     <ul
-      className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white"
+      className="divide-y divide-hairline overflow-hidden surface"
       role="status"
       aria-live="polite"
     >
@@ -170,11 +170,11 @@ function OrderListSkeleton() {
       {Array.from({ length: 4 }, (_, i) => (
         <li key={i} className="flex animate-pulse items-center gap-4 px-5 py-4">
           <div className="flex-1">
-            <div className="h-4 w-24 rounded bg-slate-100" />
-            <div className="mt-2 h-3 w-40 rounded bg-slate-100" />
+            <div className="h-4 w-24 rounded bg-skeleton" />
+            <div className="mt-2 h-3 w-40 rounded bg-skeleton" />
           </div>
-          <div className="h-5 w-16 rounded-full bg-slate-100" />
-          <div className="h-4 w-16 rounded bg-slate-100" />
+          <div className="h-5 w-16 rounded-control bg-skeleton" />
+          <div className="h-4 w-16 rounded bg-skeleton" />
         </li>
       ))}
     </ul>

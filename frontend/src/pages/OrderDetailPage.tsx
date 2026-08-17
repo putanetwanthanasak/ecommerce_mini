@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
+import { ArrowLeftIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { PageLoader } from "../components/PageLoader";
 import { ApiError } from "../lib/api";
 import { formatCents, formatPrice, lineTotalCents } from "../lib/money";
 import { OrderStatusBadge } from "../orders/OrderStatusBadge";
 import { fetchOrder, orderKeys } from "../orders/ordersApi";
-
-const ACTION_BUTTON =
-  "inline-block rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 /** Set by checkout on the navigation that lands here; see the banner below. */
 interface OrderDetailLocationState {
@@ -74,7 +73,7 @@ export function OrderDetailPage() {
               title="You don't have access to this order"
               message="This order belongs to a different account. You're still signed in — only orders you placed yourself appear in your history."
               action={
-                <Link to="/orders" className={ACTION_BUTTON}>
+                <Link to="/orders" className={buttonClass()}>
                   Go to your orders
                 </Link>
               }
@@ -93,7 +92,7 @@ export function OrderDetailPage() {
               title="Order not found"
               message="No order exists with this id. The link may be mistyped or out of date."
               action={
-                <Link to="/orders" className={ACTION_BUTTON}>
+                <Link to="/orders" className={buttonClass()}>
                   Go to your orders
                 </Link>
               }
@@ -124,39 +123,39 @@ export function OrderDetailPage() {
       <BackToOrders />
 
       {justPlaced && (
-        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-          <p className="text-sm font-semibold text-emerald-900">Order placed</p>
-          <p className="mt-1 text-sm text-emerald-800">
+        <div className="mt-6 rounded-panel border border-positive-edge bg-positive-surface px-5 py-4">
+          <p className="text-meta font-semibold text-positive">Order placed</p>
+          <p className="mt-1 text-meta text-positive">
             Stock has been reserved for every item below.
           </p>
         </div>
       )}
 
       <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Order details</h1>
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Order details</h1>
         <OrderStatusBadge status={order.status} />
       </div>
 
-      <dl className="mt-4 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
-        <div className="bg-white p-5">
-          <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">Order ID</dt>
-          <dd className="mt-1.5 font-mono text-xs break-all text-slate-600">{order.id}</dd>
+      <dl className="mt-4 hairline-grid sm:grid-cols-2">
+        <div className="bg-surface p-5">
+          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Order ID</dt>
+          <dd className="mt-1.5 font-mono text-rail break-all text-ink-muted">{order.id}</dd>
         </div>
-        <div className="bg-white p-5">
-          <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">Placed</dt>
-          <dd className="mt-1.5 text-sm text-slate-900">
+        <div className="bg-surface p-5">
+          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Placed</dt>
+          <dd className="mt-1.5 text-meta text-ink">
             <time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleString()}</time>
           </dd>
         </div>
       </dl>
 
-      <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-xs">
+      <ul className="mt-6 divide-y divide-hairline surface">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-center gap-4 px-5 py-4">
             <div className="min-w-40 flex-1">
               <Link
                 to={`/products/${item.productId}`}
-                className="text-sm font-medium text-slate-900 underline-offset-4 hover:underline"
+                className="condensed text-row font-bold text-ink underline-offset-4 hover:text-amber hover:underline"
               >
                 {item.product.name}
               </Link>
@@ -173,28 +172,28 @@ export function OrderDetailPage() {
                * now than it did at checkout: history is exactly where the two
                * prices have had time to drift apart.
                */}
-              <p className="mt-0.5 text-sm text-slate-500">
-                {formatPrice(item.priceAtPurchase)} × {item.quantity}
+              <p className="mt-0.5 text-meta text-ink-subtle">
+                <span className="figures">{formatPrice(item.priceAtPurchase)}</span> × {item.quantity}
               </p>
             </div>
-            <div className="text-sm font-semibold text-slate-900">
+            <div className="figures text-meta text-ink">
               {formatCents(lineTotalCents(item.priceAtPurchase, item.quantity))}
             </div>
           </li>
         ))}
 
-        <li className="flex items-center justify-between gap-4 bg-slate-50 px-5 py-4">
-          <span className="text-sm font-medium text-slate-700">Total</span>
+        <li className="flex items-center justify-between gap-4 bg-surface-sunken px-5 py-4">
+          <span className="text-meta font-medium text-ink-muted">Total</span>
           {/* The backend's own total, not a sum computed here — it is the
               authoritative number and the one that was charged. */}
-          <span className="text-lg font-semibold text-slate-900">
+          <span className="figures text-figure text-ink">
             {formatPrice(order.totalPrice)}
           </span>
         </li>
       </ul>
 
       <div className="mt-6">
-        <Link to="/products" className={ACTION_BUTTON}>
+        <Link to="/products" className={buttonClass()}>
           Continue shopping
         </Link>
       </div>
@@ -209,8 +208,8 @@ export function OrderDetailPage() {
  */
 function BackToOrders() {
   return (
-    <Link to="/orders" className="text-sm text-slate-500 hover:text-slate-900">
-      ← Back to your orders
+    <Link to="/orders" className="focus-ring inline-flex items-center gap-1.5 rounded-control text-meta text-ink-subtle transition hover:text-ink">
+      <ArrowLeftIcon /> Back to your orders
     </Link>
   );
 }

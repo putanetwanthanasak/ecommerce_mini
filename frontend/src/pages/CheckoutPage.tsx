@@ -3,16 +3,16 @@ import type { ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { Button } from "../components/Button";
+import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
+import { ArrowLeftIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { useCart } from "../cart/cartContext";
 import { catalogKeys, fetchProduct } from "../catalog/catalogApi";
 import { formatCents, formatPrice, lineTotalCents, sumCents } from "../lib/money";
 import { toCheckoutProblem, type CheckoutProblem } from "../orders/checkoutError";
 import { createOrder, orderKeys, type Order } from "../orders/ordersApi";
-
-const ACTION_BUTTON =
-  "inline-block rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 export function CheckoutPage() {
   const { items, isEmpty, setQuantity, removeItem, clear } = useCart();
@@ -106,13 +106,13 @@ export function CheckoutPage() {
 
     return (
       <AppLayout>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Checkout</h1>
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Checkout</h1>
         <div className="mt-8">
           <EmptyState
             title="There's nothing to check out"
             message="Your cart is empty."
             action={
-              <Link to="/products" className={ACTION_BUTTON}>
+              <Link to="/products" className={buttonClass()}>
                 Browse products
               </Link>
             }
@@ -124,11 +124,11 @@ export function CheckoutPage() {
 
   return (
     <AppLayout>
-      <Link to="/cart" className="text-sm text-slate-500 hover:text-slate-900">
-        ← Back to cart
+      <Link to="/cart" className="focus-ring inline-flex items-center gap-1.5 rounded-control text-meta text-ink-subtle transition hover:text-ink">
+        <ArrowLeftIcon /> Back to cart
       </Link>
 
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">Checkout</h1>
+      <h1 className="mt-6 condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Checkout</h1>
 
       {problem && (
         <div className="mt-6">
@@ -148,39 +148,40 @@ export function CheckoutPage() {
         </div>
       )}
 
-      <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-xs">
+      <ul className="surface mt-6 divide-y divide-hairline">
         {items.map((item) => (
           <li key={item.productId} className="flex items-center gap-4 px-5 py-4">
             <div className="min-w-40 flex-1">
-              <p className="text-sm font-medium text-slate-900">{item.name}</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                {formatPrice(item.price)} × {item.quantity}
+              <p className="text-meta font-medium text-ink">{item.name}</p>
+              <p className="mt-0.5 text-meta text-ink-subtle">
+                <span className="figures">{formatPrice(item.price)}</span> × {item.quantity}
               </p>
             </div>
-            <div className="text-sm font-semibold text-slate-900">
+            <div className="figures text-meta text-ink">
               {formatCents(lineTotalCents(item.price, item.quantity))}
             </div>
           </li>
         ))}
 
-        <li className="flex items-center justify-between gap-4 bg-slate-50 px-5 py-4">
-          <span className="text-sm font-medium text-slate-700">Total</span>
-          <span className="text-lg font-semibold text-slate-900">{formatCents(totalCents)}</span>
+        <li className="flex items-center justify-between gap-4 bg-surface-sunken px-5 py-4">
+          <span className="text-meta font-medium text-ink-muted">Total</span>
+          <span className="figures text-figure text-ink">{formatCents(totalCents)}</span>
         </li>
       </ul>
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-4">
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={mutation.isPending}
-          className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition outline-none hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-400"
-        >
+        {/*
+          Disabled while the request is in flight, and that is load-bearing: the
+          backend has no idempotency key, so two identical POSTs create two
+          orders and decrement stock twice. This button plus the inFlight ref is
+          the only thing preventing a double-click from doing that.
+        */}
+        <Button variant="primary" onClick={handleConfirm} disabled={mutation.isPending}>
           {mutation.isPending ? "Placing order…" : "Place order"}
-        </button>
+        </Button>
       </div>
 
-      <p className="mt-4 text-right text-xs text-slate-400">
+      <p className="mt-4 text-right text-rail text-ink-faint">
         The server confirms every price and stock level when the order is placed.
       </p>
     </AppLayout>
@@ -212,7 +213,7 @@ function CheckoutProblemNotice({
     const productId = problem.productId;
 
     return (
-      <Notice tone="amber" title={`${problem.productName} just sold out from under you`}>
+      <Notice tone="caution" title={`${problem.productName} just sold out from under you`}>
         <p>
           {liveStock === null
             ? "Someone else bought it while it was in your cart."
@@ -252,7 +253,7 @@ function CheckoutProblemNotice({
     const productId = problem.productId;
 
     return (
-      <Notice tone="red" title="One of these products no longer exists">
+      <Notice tone="critical" title="One of these products no longer exists">
         <p>
           It was removed from the catalog while it sat in your cart. No order was placed and nothing
           was charged.
@@ -272,7 +273,7 @@ function CheckoutProblemNotice({
 
   if (problem.kind === "validation") {
     return (
-      <Notice tone="red" title="This order can't be placed as it is">
+      <Notice tone="critical" title="This order can't be placed as it is">
         <ul className="list-inside list-disc space-y-1">
           {problem.messages.map((message) => (
             <li key={message}>{message}</li>
@@ -291,7 +292,7 @@ function CheckoutProblemNotice({
     // apiRequest already ended the session and ProtectedRoute is on its way to
     // /login. The one thing worth saying is that the cart isn't lost with it.
     return (
-      <Notice tone="amber" title="Your session expired before the order went through">
+      <Notice tone="caution" title="Your session expired before the order went through">
         <p>Sign in again — your cart is saved and nothing was ordered.</p>
       </Notice>
     );
@@ -315,31 +316,34 @@ function Notice({
   title,
   children,
 }: {
-  tone: "red" | "amber";
+  tone: "critical" | "caution";
   title: string;
   children: ReactNode;
 }) {
   const palette =
-    tone === "red"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : "border-amber-200 bg-amber-50 text-amber-900";
+    tone === "critical"
+      ? "border-critical-edge bg-critical-surface text-critical"
+      : "border-caution-edge bg-caution-surface text-caution";
 
   return (
-    <div role="alert" className={`rounded-lg border px-4 py-3 text-sm ${palette}`}>
+    <div role="alert" className={`rounded-control border px-4 py-3 text-meta ${palette}`}>
       <p className="font-semibold">{title}</p>
       <div className="mt-1">{children}</div>
     </div>
   );
 }
 
+/**
+ * A control sitting on one of the tinted Notice panels above.
+ *
+ * The `on-color` variant borrows the panel's own text colour through
+ * currentColor rather than naming a hue, so one definition works on the red
+ * and amber notices alike.
+ */
 function NoticeButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-current/30 bg-white/70 px-3 py-1.5 text-sm font-medium transition outline-none hover:bg-white focus-visible:ring-2 focus-visible:ring-current/30"
-    >
+    <Button variant="on-color" size="sm" onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }

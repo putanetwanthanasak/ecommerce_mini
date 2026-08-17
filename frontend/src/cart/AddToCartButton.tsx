@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import type { Product } from "../catalog/catalogApi";
+import { Button } from "../components/Button";
 import { useCart } from "./cartContext";
 
 /**
@@ -28,21 +29,23 @@ export function AddToCartButton({ product, size = "md" }: { product: Product; si
     addItem(product);
   }
 
-  const padding = size === "sm" ? "px-3 py-1.5 text-sm" : "px-4 py-2.5 text-sm";
-
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={disabled}
-        className={`rounded-lg bg-slate-900 font-medium text-white transition outline-none hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-300 ${padding}`}
-      >
+    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+      {/*
+        KNOWN GAP, left for `adapt` rather than fixed here: on the grid this
+        renders at `sm`, which is about 30px tall and under the 44px a thumb
+        needs — inside a card whose title link covers the whole tile, so a
+        mis-tap navigates away instead of doing nothing. Raising it is not a
+        one-word change: the button also needs real separation from that
+        overlay, and the successful add needs an announcement that is not a
+        badge in a header the user has already scrolled past.
+      */}
+      <Button variant="primary" size={size} onClick={handleClick} disabled={disabled}>
         {soldOut ? "Out of stock" : inCart > 0 ? "Add another" : "Add to cart"}
-      </button>
+      </Button>
 
       {inCart > 0 && (
-        <span className="text-xs text-slate-500">
+        <span className="text-rail text-ink-subtle">
           {inCart} in cart
           {atStockLimit && " · all we have"}
         </span>

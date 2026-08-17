@@ -1,11 +1,17 @@
+import { Button } from "./Button";
+
+/**
+ * The submit control for the auth forms.
+ *
+ * Kept as its own component rather than replaced by a bare <Button> at the call
+ * sites, because it owns one real decision: while a submit is in flight the
+ * label becomes "Working…", so the button itself reports the request rather than
+ * needing a spinner beside it. Both auth forms want that identically.
+ */
 export function SubmitButton({ pending, children }: { pending: boolean; children: string }) {
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <Button type="submit" variant="primary" fullWidth disabled={pending}>
       {pending ? "Working…" : children}
-    </button>
+    </Button>
   );
 }

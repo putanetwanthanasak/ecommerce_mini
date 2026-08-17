@@ -1,14 +1,292 @@
 @import "tailwindcss";
 
+/*
+ * Archivo, self-hosted, with BOTH variable axes: weight 100-900 and width 62-125.
+ *
+ * One 90KB latin file replaces what would otherwise be several static cuts, and the
+ * width axis is what lets this design put condensed board lettering next to normal-width
+ * body copy without a second family. `font-display: swap` ships with the package, so text
+ * paints in the fallback immediately and never blocks.
+ *
+ * Chosen for its signage lineage — Archivo is drawn from the American gothics used on
+ * highway and transit boards, which is the same drawing tradition as a departures board's
+ * flap lettering. The previous theme named "Inter" and never loaded it, so every machine
+ * without Inter installed silently rendered Segoe UI: the one aesthetic decision in this
+ * codebase had never actually shipped.
+ */
+@import "@fontsource-variable/archivo/wdth.css";
+
+/*
+ * THE DEPARTURES BOARD
+ *
+ * A split-flap arrivals board exists to make a changing number trustworthy at a glance.
+ * This store's stock counts are guaranteed by a transaction that cannot oversell, so the
+ * board is the medium rather than a metaphor. See the direction contract in index.html.
+ *
+ * WHY ONE POLARITY: everything is light-on-dark. Flaps are matte dark cards a shade above
+ * the board, not white ones. That is a real Solari variant (Italian station boards) and it
+ * is also what keeps this change honest: the semantic role names below are the same ones
+ * every component already consumes, so the world lands by changing values, not by
+ * rewriting twenty-seven files a second time.
+ *
+ * WHY DARK AT ALL: the scene forces it. A departures board is read in a concourse at dusk,
+ * where the board is the only lit surface in view. A light rendition of this world would be
+ * a different world wearing its layout.
+ */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Archivo Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /*
+   * The board itself, and the flaps on it. Three steps of dark, close together: the
+   * separation between a board and its flaps in life is shallow and matte, so a big
+   * jump here would read as stacked panels instead of one mechanism.
+   */
+  --color-board: oklch(21.5% 0.012 240); /* the enamelled board behind everything */
+  --color-surface-sunken: var(--color-board); /* page ground == the board */
+  --color-surface: oklch(26% 0.012 240); /* a flap */
+  --color-surface-muted: oklch(31% 0.013 240); /* flap hover, neutral badge fill */
+  --color-skeleton: oklch(31% 0.013 240); /* a flap not yet printed */
+
+  --color-hairline: oklch(33% 0.012 240); /* the chassis gap between flaps */
+  --color-edge: oklch(42% 0.013 240); /* borders on things you can interact with */
+
+  /*
+   * Printed ink on a flap. Every value below is contrast-checked against the flap
+   * (--color-surface); ink-faint is the floor case because it carries placeholder text,
+   * which has to clear 4.5:1 like any other text a person is expected to read.
+   */
+  --color-ink: oklch(94% 0.004 240); /* 13:1 on a flap */
+  --color-ink-muted: oklch(80% 0.006 240); /* 8.4:1 */
+  --color-ink-subtle: oklch(68% 0.008 240); /* 5.8:1 */
+  --color-ink-faint: oklch(62% 0.009 240); /* 4.9:1 — the floor, not decoration */
+
+  /*
+   * AMBER IS RESERVED. It marks a figure that can still change — a stock count, a PENDING
+   * order — and nothing else. The moment it decorates something static it stops carrying
+   * meaning, and the board loses the one signal it exists to send.
+   */
+  --color-amber: oklch(80% 0.135 78);
+  --color-amber-surface: oklch(28% 0.045 78);
+
+  /* Settled: in stock, paid, shipped. The flap has stopped turning. */
+  --color-signal: oklch(74% 0.105 155);
+  --color-signal-surface: oklch(27% 0.038 155);
+
+  /* Gone: sold out. A row fallen blank. */
+  --color-alert: oklch(70% 0.145 27);
+  --color-alert-surface: oklch(27% 0.055 27);
+
+  /*
+   * The status families the components already consume, pointed at the board's signals so
+   * there is exactly one definition of "amber" in the project. CANCELLED stays neutral by
+   * deliberate choice — a customer who cancelled their own order has not hit an error.
+   */
+  --color-critical: var(--color-alert);
+  --color-critical-edge: oklch(38% 0.09 27);
+  --color-critical-surface: var(--color-alert-surface);
+
+  --color-caution: var(--color-amber);
+  --color-caution-edge: oklch(40% 0.075 78);
+  --color-caution-surface: var(--color-amber-surface);
+
+  --color-positive: var(--color-signal);
+  --color-positive-edge: oklch(38% 0.065 155);
+  --color-positive-surface: var(--color-signal-surface);
+
+  --color-info: oklch(76% 0.075 235);
+  --color-info-edge: oklch(40% 0.055 235);
+  --color-info-surface: oklch(27% 0.032 235);
+
+  /* Amber, because focus is a state that is currently changing. */
+  --color-focus: var(--color-amber);
+
+  --radius-control: var(--radius-md);
+  --radius-panel: var(--radius-lg);
+
+  /*
+   * TYPE ROLES.
+   *
+   * Named for the job, not the value, and deliberately NOT overlapping any --color-*
+   * name: Tailwind generates `text-<name>` from both namespaces, so a --text-board
+   * beside a --color-board would collide on one utility.
+   *
+   * Hierarchy here is carried by WIDTH as much as size. `figure` and `rail` run
+   * condensed; body runs normal. That is the board's own grammar — flap lettering is
+   * condensed because a flap is narrow — and it means a price can dominate a row without
+   * simply being enormous.
+   */
+  --text-rail: 0.6875rem; /* column headers and field labels, tracked caps */
+  --text-rail--line-height: 1.2;
+  --text-meta: 0.8125rem; /* dates, counts, secondary facts */
+  --text-meta--line-height: 1.45;
+  --text-body: 1rem; /* the reading floor. descriptions, prose */
+  --text-body--line-height: 1.6;
+  --text-row: 1.125rem; /* a product name on its flap */
+  --text-row--line-height: 1.25;
+  --text-figure: 1.5rem; /* money in a list */
+  --text-figure--line-height: 1.1;
+  --text-title: clamp(1.75rem, 1.2rem + 2vw, 2.25rem); /* page heading */
+  --text-title--line-height: 1.1;
+  --text-display: clamp(2.5rem, 1.5rem + 4vw, 3.75rem); /* money on a detail page */
+  --text-display--line-height: 1;
+}
+
+/*
+ * A panel — which in this world is a flap: one printed card on the board. Matte, no
+ * shadow; depth comes from the chassis hairline between flaps, the way it does on the
+ * real mechanism.
+ *
+ * Named `surface` rather than `flap` because that is the role name every component
+ * already consumes, and a second utility with an identical body is the exact drift the
+ * token pass existed to remove.
+ */
+@utility surface {
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+}
+
+/*
+ * The hairline grid: a definition list whose 1px gaps ARE the cell borders, drawn by
+ * letting the container's background show through. On this board it reads as the chassis
+ * showing between flaps, which is exactly right.
+ */
+@utility hairline-grid {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-hairline);
+}
+
+/*
+ * A rail: the tracked-caps label strip that runs above a set of rows. The board's own
+ * wayfinding, and the reason the catalog needs no eyebrow above anything.
+ */
+@utility rail {
+  font-size: var(--text-rail);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-stretch: 88%;
+  color: var(--color-ink-subtle);
+}
+
+/*
+ * Money and counts. Tabular so figures align down a column and can be compared, and
+ * condensed so a price can be large without crowding the name beside it.
+ *
+ * This is the "held level" rule: lettering on this board carries character through width
+ * and tracking, but the numbers are machine-true and rigidly aligned.
+ */
+@utility figures {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 80%;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+/* Condensed display lettering for names and headings. */
+@utility condensed {
+  font-stretch: 82%;
+}
+
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  &:focus-visible {
+    outline-color: var(--color-focus);
+  }
+}
+
+/*
+ * A printed cell, not a capsule. `rounded-full` pills were the loudest shapes on the
+ * board and belonged to no part of this world — they are the generic chip vocabulary
+ * the old look had, and the world is rows, rails and printed cells.
+ */
+@utility badge {
+  @apply inline-flex shrink-0 items-center rounded-control border border-transparent px-2 py-0.5 font-medium;
+  font-size: var(--text-rail);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+ * THE TURN — the board's one authored moment.
+ *
+ * A flap rotating over on its axle. It starts and ends fully visible, so a figure
+ * never disappears while it changes: the movement is the information, not a fade.
+ * The ease is a strong exponential out, which is what makes a mechanical part read as
+ * having mass and settling rather than gliding.
+ *
+ * Spent on exactly one element — the stock figure in StockCell — because it is the
+ * only number on this surface that is allowed to move.
+ */
+@keyframes flap-turn {
+  0% {
+    transform: perspective(240px) rotateX(0deg);
+  }
+  45% {
+    transform: perspective(240px) rotateX(-72deg);
+  }
+  100% {
+    transform: perspective(240px) rotateX(0deg);
+  }
+}
+
+@utility animate-flap-turn {
+  display: inline-block;
+  transform-origin: 50% 50%;
+  animation: flap-turn 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
   /* Keeps the auth card from jumping horizontally when a page grows a scrollbar. */
   scrollbar-gutter: stable;
+  /* The board runs to the edges of the window, not just to the end of the content. */
+  background-color: var(--color-board);
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  @apply bg-surface-sunken text-ink font-sans antialiased;
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+
+/*
+ * Browser surfaces. Selection, the caret and the scrollbar ship with defaults that belong
+ * to no design system, and on a dark ground the stock versions are actively wrong.
+ */
+::selection {
+  background-color: var(--color-amber);
+  color: var(--color-board);
+}
+
+:where(input, textarea) {
+  caret-color: var(--color-amber);
+}
+
+@supports (scrollbar-color: auto) {
+  html {
+    scrollbar-color: var(--color-edge) var(--color-board);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * The skeletons pulse and the grid cross-fades between pages. Both are information —
+   * "this is still loading" — so they are reduced rather than removed: the opacity change
+   * still lands, it just stops repeating.
+   */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

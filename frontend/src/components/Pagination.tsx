@@ -1,7 +1,5 @@
+import { Button } from "./Button";
 import type { PageInfo } from "../lib/pagination";
-
-const BUTTON =
-  "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white";
 
 interface PaginationProps {
   pagination: PageInfo;
@@ -44,36 +42,30 @@ export function Pagination({
   return (
     <nav
       aria-label={label}
-      className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5"
+      className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-5"
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-meta text-ink-subtle">
         {/* Concrete numbers beat "Page 2 of 5" alone — they tell the user how
             much is actually behind the filter they just applied. */}
-        Showing <span className="font-medium text-slate-700">{firstOnPage}</span>–
-        <span className="font-medium text-slate-700">{lastOnPage}</span> of{" "}
-        <span className="font-medium text-slate-700">{total}</span>
+        Showing <span className="figures text-ink-muted">{firstOnPage}</span>–
+        <span className="figures text-ink-muted">{lastOnPage}</span> of{" "}
+        <span className="figures text-ink-muted">{total}</span>
       </p>
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={BUTTON}
-          onClick={() => onPageChange(page - 1)}
-          disabled={busy || page <= 1}
-        >
+        <Button size="sm" onClick={() => onPageChange(page - 1)} disabled={busy || page <= 1}>
           Previous
-        </button>
-        <span className="px-1 text-sm text-slate-500" aria-current="page">
+        </Button>
+        <span className="rail px-1">
           Page {page} of {totalPages}
         </span>
-        <button
-          type="button"
-          className={BUTTON}
+        <Button
+          size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={busy || page >= totalPages}
         >
           Next
-        </button>
+        </Button>
       </div>
     </nav>
   );

@@ -1,22 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AppLayout } from "../components/AppLayout";
+import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { FormField } from "../components/FormField";
 import { catalogKeys, fetchProducts } from "../catalog/catalogApi";
 import { CategoryFilter } from "../catalog/CategoryFilter";
 import { Pagination } from "../components/Pagination";
-import { ProductCard, ProductCardSkeleton } from "../catalog/ProductCard";
+import { ProductRow, ProductRowSkeleton } from "../catalog/ProductRow";
 import { useCatalogParams, DEFAULT_PAGE_SIZE } from "../catalog/useCatalogParams";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 // Long enough that a typed word is one request, short enough that the grid
 // doesn't feel stuck after the user stops.
 const SEARCH_DEBOUNCE_MS = 350;
-
-const ACTION_BUTTON =
-  "rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 export function ProductListPage() {
   const { params, hasFilters, setSearch, setCategoryId, setPage, clearFilters } = useCatalogParams();
@@ -84,9 +82,7 @@ export function ProductListPage() {
             pagination.total === 1 ? "product" : "products"
           } across ${pagination.totalPages} ${pagination.totalPages === 1 ? "page" : "pages"}.`}
           action={
-            <button type="button" onClick={() => setPage(1)} className={ACTION_BUTTON}>
-              Back to page 1
-            </button>
+            <Button onClick={() => setPage(1)}>Back to page 1</Button>
           }
         />
       );
@@ -102,9 +98,7 @@ export function ProductListPage() {
               : "This category has no products yet."
           }
           action={
-            <button type="button" onClick={handleClearFilters} className={ACTION_BUTTON}>
-              Clear filters
-            </button>
+            <Button onClick={handleClearFilters}>Clear filters</Button>
           }
         />
       );
@@ -120,7 +114,7 @@ export function ProductListPage() {
 
   function renderResults() {
     if (query.isPending) {
-      return <ProductGridSkeleton count={Math.min(params.limit, DEFAULT_PAGE_SIZE)} />;
+      return <BoardSkeleton count={Math.min(params.limit, DEFAULT_PAGE_SIZE)} />;
     }
 
     if (query.isError) {
@@ -137,15 +131,24 @@ export function ProductListPage() {
 
     return (
       <div className="space-y-6">
-        <div
-          aria-busy={isRefreshing}
-          className={`grid gap-4 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${
-            isRefreshing ? "opacity-60" : "opacity-100"
-          }`}
-        >
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        {/*
+          The board: one flap per product, separated by the chassis hairline. The
+          column rail above it names what each column holds, which is what makes a
+          board readable without a single picture — and it only works because
+          every price now lands in one column.
+        */}
+        <div>
+          <ColumnRail />
+          <ul
+            aria-busy={isRefreshing}
+            className={`surface divide-y divide-hairline transition-opacity ${
+              isRefreshing ? "opacity-60" : "opacity-100"
+            }`}
+          >
+            {products.map((product) => (
+              <ProductRow key={product.id} product={product} />
+            ))}
+          </ul>
         </div>
 
         {pagination && (
@@ -162,12 +165,27 @@ export function ProductListPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Products</h1>
+      {/*
+        The heading is set as a rail, not a display line. It used to be the largest
+        text on the page — a shopping surface whose loudest word was "Products",
+        which is the name of a database table. The figures on the board are the
+        largest type here now, because they are what the visitor came to read.
+      */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">
+          Products
+        </h1>
         {pagination && (
-          <p className="text-sm text-slate-500">
-            {pagination.total} {pagination.total === 1 ? "product" : "products"}
-            {hasFilters && " matching"}
+          <p className="text-meta text-ink-subtle">
+            {/*
+              NO BARE NUMBERS: a count says what it counts. This read "12 products
+              matching" — a sentence that stopped mid-thought and never named what
+              they matched.
+            */}
+            <span className="figures text-ink-muted">{pagination.total}</span>{" "}
+            {pagination.total === 1 ? "product" : "products"}
+            {hasFilters && params.search && ` matching “${params.search}”`}
+            {hasFilters && !params.search && " in this category"}
           </p>
         )}
       </div>
@@ -189,11 +207,7 @@ export function ProductListPage() {
 
         <CategoryFilter selectedId={params.categoryId} onSelect={setCategoryId} />
 
-        {hasFilters && (
-          <button type="button" onClick={handleClearFilters} className={ACTION_BUTTON}>
-            Clear filters
-          </button>
-        )}
+        {hasFilters && <Button onClick={handleClearFilters}>Clear filters</Button>}
       </div>
 
       <div className="mt-8">{renderResults()}</div>
@@ -201,13 +215,40 @@ export function ProductListPage() {
   );
 }
 
-function ProductGridSkeleton({ count }: { count: number }) {
+/**
+ * The board's column rail.
+ *
+ * Hidden below `sm`, where the rows collapse to a stack and column headers would
+ * be labelling columns that no longer exist. `aria-hidden` because these are
+ * visual column labels for a list, not a data table — the rows carry their own
+ * accessible text, and announcing "ITEM STOCK PRICE" before the list would be
+ * noise to a screen reader.
+ */
+function ColumnRail() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-live="polite">
+    <div
+      aria-hidden="true"
+      className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_10rem] items-center gap-x-4 px-5 pb-2 sm:grid"
+    >
+      <span className="rail">Item</span>
+      <span className="rail">Stock</span>
+      <span className="rail text-right">Price</span>
+      {/* Spacer matching the add control's column so the labels stay over their columns. */}
+      <span aria-hidden="true" />
+    </div>
+  );
+}
+
+function BoardSkeleton({ count }: { count: number }) {
+  return (
+    <div role="status" aria-live="polite">
       <span className="sr-only">Loading products</span>
-      {Array.from({ length: count }, (_, i) => (
-        <ProductCardSkeleton key={i} />
-      ))}
+      <ColumnRail />
+      <ul className="surface divide-y divide-hairline">
+        {Array.from({ length: count }, (_, i) => (
+          <ProductRowSkeleton key={i} />
+        ))}
+      </ul>
     </div>
   );
 }

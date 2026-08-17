@@ -99,15 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (bootstrapError) {
     return (
       <div className="flex min-h-dvh items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-lg font-semibold text-slate-900">Can't load your session</h1>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="w-full max-w-md surface p-8 text-center">
+          <h1 className="text-row font-semibold text-ink">Can't load your session</h1>
+          <p className="mt-2 text-meta text-ink-muted">
             {bootstrapError instanceof Error ? bootstrapError.message : "Something went wrong."}
           </p>
           <button
             type="button"
             onClick={() => void meQuery.refetch()}
-            className="mt-6 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+            className="mt-6 w-full rounded-control bg-ink px-4 py-2.5 text-meta font-medium text-board transition hover:bg-ink-muted"
           >
             Try again
           </button>

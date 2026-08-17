@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authContext";
 import { CartBadge } from "../cart/CartBadge";
+import { Button } from "./Button";
 
 /**
  * Shell for every signed-in page — the counterpart to AuthLayout.
@@ -17,45 +18,54 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
+      {/*
+        The board's header rail. Darker than the flaps below it rather than lighter, so it
+        reads as the chassis the mechanism is mounted in, and it carries the one hairline
+        that separates the board's frame from its rows.
+      */}
+      <header className="border-b border-hairline bg-board">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">
+          {/*
+            The wordmark was 12px in the third-lightest grey available — quieter than every
+            badge on the page, in a slot designed to be invisible. On a departures board the
+            operator's name is set in the same condensed caps as the destinations, at a size
+            that admits it owns the board.
+          */}
           <Link
             to="/products"
-            className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase transition hover:text-slate-600"
+            className="focus-ring condensed rounded-control text-row leading-none font-bold tracking-[0.16em] text-ink uppercase transition hover:text-amber"
           >
             Commerce
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             {/* Without this the history is reachable only by typing the URL or
                 by having just checked out. */}
             <Link
               to="/orders"
-              className="text-sm text-slate-600 underline-offset-4 hover:underline"
+              className="focus-ring rail rounded-control transition hover:text-ink"
             >
               Orders
             </Link>
             {user && (
               <Link
                 to="/account"
-                className="hidden text-sm text-slate-600 underline-offset-4 hover:underline sm:inline"
+                className="focus-ring rail hidden rounded-control transition hover:text-ink sm:inline"
               >
                 {user.name}
               </Link>
             )}
-            {isAdmin && (
-              <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-medium text-white">
-                Admin
-              </span>
-            )}
+            {isAdmin && <span className="badge border-edge text-ink-muted">Admin</span>}
             <CartBadge />
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-            >
+            {/*
+              Log out went through Button specifically because it had lost its
+              focus ring while every control beside it kept one — the single
+              destructive action in the header was the one a keyboard user
+              could not see themselves land on.
+            */}
+            <Button size="sm" onClick={logout}>
               Log out
-            </button>
+            </Button>
           </div>
         </div>
       </header>

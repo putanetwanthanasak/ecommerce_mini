@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-17T18:20:00Z",
+  "title": "Design System: Commerce",
+  "extensions": {
+    "colorMeta": {
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Enamel",
+        "canonical": "oklch(21.5% 0.012 240)",
+        "tonalRamp": [
+          "oklch(15% 0.012 240)",
+          "oklch(26% 0.012 240)",
+          "oklch(37% 0.012 240)",
+          "oklch(49% 0.012 240)",
+          "oklch(60% 0.012 240)",
+          "oklch(72% 0.012 240)",
+          "oklch(83% 0.012 240)",
+          "oklch(95% 0.012 240)"
+        ]
+      },
+      "surface-sunken": {
+        "role": "neutral",
+        "displayName": "Board Enamel (alias)",
+        "canonical": "oklch(21.5% 0.012 240)",
+        "note": "Declared as var(--color-board). The page ground IS the board; keep them one value."
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Flap Matte",
+        "canonical": "oklch(26% 0.012 240)",
+        "tonalRamp": [
+          "oklch(15% 0.012 240)",
+          "oklch(26% 0.012 240)",
+          "oklch(37% 0.012 240)",
+          "oklch(49% 0.012 240)",
+          "oklch(60% 0.012 240)",
+          "oklch(72% 0.012 240)",
+          "oklch(83% 0.012 240)",
+          "oklch(95% 0.012 240)"
+        ]
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "Flap Lifted",
+        "canonical": "oklch(31% 0.013 240)",
+        "note": "Flap hover and neutral badge fill. Shares its value with skeleton."
+      },
+      "skeleton": {
+        "role": "neutral",
+        "displayName": "Unprinted Flap",
+        "canonical": "oklch(31% 0.013 240)"
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Chassis Hairline",
+        "canonical": "oklch(33% 0.012 240)",
+        "note": "The entire elevation vocabulary. 1px, structural, never a shadow."
+      },
+      "edge": {
+        "role": "neutral",
+        "displayName": "Interactive Edge",
+        "canonical": "oklch(42% 0.013 240)",
+        "note": "Borders on things you can operate: inputs, secondary buttons, the dashed empty frame."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Printed Ink",
+        "canonical": "oklch(94% 0.004 240)",
+        "note": "13:1 on a flap. Near-white — which is why a primary button's label is board, not white.",
+        "tonalRamp": [
+          "oklch(15% 0.004 240)",
+          "oklch(26% 0.004 240)",
+          "oklch(37% 0.004 240)",
+          "oklch(49% 0.004 240)",
+          "oklch(60% 0.004 240)",
+          "oklch(72% 0.004 240)",
+          "oklch(83% 0.004 240)",
+          "oklch(95% 0.004 240)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "oklch(80% 0.006 240)",
+        "note": "8.4:1 on a flap."
+      },
+      "ink-subtle": {
+        "role": "neutral",
+        "displayName": "Ink Subtle",
+        "canonical": "oklch(68% 0.008 240)",
+        "note": "5.8:1 on a flap. Rails, column headers, supporting sentences."
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "canonical": "oklch(62% 0.009 240)",
+        "note": "4.9:1 — the contrast floor, not decoration. Placeholders and disabled labels are still read."
+      },
+      "amber": {
+        "role": "primary",
+        "displayName": "Reserved Amber",
+        "canonical": "oklch(80% 0.135 78)",
+        "note": "RESERVED for what can still change: a live figure, focus, selection, caret, hover target. Absent from buttons and navigation.",
+        "tonalRamp": [
+          "oklch(15% 0.135 78)",
+          "oklch(26% 0.135 78)",
+          "oklch(37% 0.135 78)",
+          "oklch(49% 0.135 78)",
+          "oklch(60% 0.135 78)",
+          "oklch(72% 0.135 78)",
+          "oklch(83% 0.135 78)",
+          "oklch(95% 0.135 78)"
+        ]
+      },
+      "amber-surface": {
+        "role": "primary",
+        "displayName": "Amber Tint",
+        "canonical": "oklch(28% 0.045 78)",
+        "note": "Also serves as caution-surface. One definition of amber in the project."
+      },
+      "caution-edge": {
+        "role": "primary",
+        "displayName": "Amber Edge",
+        "canonical": "oklch(40% 0.075 78)"
+      },
+      "signal": {
+        "role": "secondary",
+        "displayName": "Settled Green",
+        "canonical": "oklch(74% 0.105 155)",
+        "note": "The flap has stopped turning: stock in hand, SHIPPED, the post-checkout confirmation.",
+        "tonalRamp": [
+          "oklch(15% 0.105 155)",
+          "oklch(26% 0.105 155)",
+          "oklch(37% 0.105 155)",
+          "oklch(49% 0.105 155)",
+          "oklch(60% 0.105 155)",
+          "oklch(72% 0.105 155)",
+          "oklch(83% 0.105 155)",
+          "oklch(95% 0.105 155)"
+        ]
+      },
+      "signal-surface": {
+        "role": "secondary",
+        "displayName": "Green Tint",
+        "canonical": "oklch(27% 0.038 155)",
+        "note": "Also serves as positive-surface."
+      },
+      "positive-edge": {
+        "role": "secondary",
+        "displayName": "Green Edge",
+        "canonical": "oklch(38% 0.065 155)"
+      },
+      "alert": {
+        "role": "secondary",
+        "displayName": "Gone Red",
+        "canonical": "oklch(70% 0.145 27)",
+        "note": "Sold out, and errors the backend actually reported. Never a customer's own cancellation.",
+        "tonalRamp": [
+          "oklch(15% 0.145 27)",
+          "oklch(26% 0.145 27)",
+          "oklch(37% 0.145 27)",
+          "oklch(49% 0.145 27)",
+          "oklch(60% 0.145 27)",
+          "oklch(72% 0.145 27)",
+          "oklch(83% 0.145 27)",
+          "oklch(95% 0.145 27)"
+        ]
+      },
+      "alert-surface": {
+        "role": "secondary",
+        "displayName": "Red Tint",
+        "canonical": "oklch(27% 0.055 27)",
+        "note": "Also serves as critical-surface."
+      },
+      "critical-edge": {
+        "role": "secondary",
+        "displayName": "Red Edge",
+        "canonical": "oklch(38% 0.09 27)"
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Ledger Blue",
+        "canonical": "oklch(76% 0.075 235)",
+        "note": "Money settled — the PAID status, and nothing else so far.",
+        "tonalRamp": [
+          "oklch(15% 0.075 235)",
+          "oklch(26% 0.075 235)",
+          "oklch(37% 0.075 235)",
+          "oklch(49% 0.075 235)",
+          "oklch(60% 0.075 235)",
+          "oklch(72% 0.075 235)",
+          "oklch(83% 0.075 235)",
+          "oklch(95% 0.075 235)"
+        ]
+      },
+      "info-surface": {
+        "role": "tertiary",
+        "displayName": "Blue Tint",
+        "canonical": "oklch(27% 0.032 235)"
+      },
+      "info-edge": {
+        "role": "tertiary",
+        "displayName": "Blue Edge",
+        "canonical": "oklch(40% 0.055 235)"
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Reserved Amber (alias)",
+        "canonical": "oklch(80% 0.135 78)",
+        "note": "Declared as var(--color-amber): focus is a state that is currently changing."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Money on a detail page. The largest thing on any screen is a number, never a heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "A product name on its detail page and an auth card's heading — the only two large headings in the app."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Money in a list. Right-aligned inside its own fixed column so prices compare down the page."
+      },
+      "row": {
+        "displayName": "Row",
+        "purpose": "A product name on its flap, the printed stock count, the wordmark, list-page headings, empty-state headlines."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The reading floor: descriptions and prose, capped near 60ch when centred. The only role at normal width."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Dates, counts, category tabs, supporting sentences, input text."
+      },
+      "rail": {
+        "displayName": "Rail",
+        "purpose": "Tracked caps for column headers, field labels, header navigation, and unit words beside a figure. The board's own wayfinding — which is why nothing needs an eyebrow."
+      }
+    },
+    "motion": [
+      {
+        "name": "flap-turn",
+        "value": "flap-turn 400ms cubic-bezier(0.16, 1, 0.3, 1) — perspective(240px) rotateX(0deg → -72deg → 0deg)",
+        "purpose": "THE one authored motion in the system. Spent on the stock figure alone, because it is the only number allowed to move. Starts and ends fully visible: the movement is the information, never a fade. Do not author a second animation."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce) { animation-duration: 0.01ms; animation-iteration-count: 1; transition-duration: 0.01ms }",
+        "purpose": "Reduces rather than removes: the skeleton pulse and the grid cross-fade are information ('still loading'), so the opacity change still lands, it just stops repeating."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "container", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A printed flap: the light card is the affordance and the board supplies the label colour. Amber is deliberately not used here.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Add to cart</button>",
+      "css": ".ds-btn { font-family: var(--font-sans); font-stretch: 82%; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: var(--radius-md, 0.375rem); font-weight: 600; font-size: 0.875rem; letter-spacing: 0.03em; white-space: nowrap; min-height: 2.75rem; padding: 0.625rem 1rem; border: none; transition: background-color 150ms, color 150ms, border-color 150ms; outline: 2px solid transparent; outline-offset: 2px; } .ds-btn:focus-visible { outline-color: var(--color-amber); } .ds-btn-primary { background-color: var(--color-ink); color: var(--color-board); } .ds-btn-primary:hover { background-color: #fff; } .ds-btn-primary:disabled { background-color: var(--color-surface-muted); color: var(--color-ink-faint); cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The default variant: an edge-bordered flap. Hover brightens border, fill and text together.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Clear filters</button>",
+      "css": ".ds-btn { font-family: var(--font-sans); font-stretch: 82%; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: var(--radius-md, 0.375rem); font-weight: 600; font-size: 0.875rem; letter-spacing: 0.03em; white-space: nowrap; min-height: 2.75rem; padding: 0.625rem 1rem; transition: background-color 150ms, color 150ms, border-color 150ms; outline: 2px solid transparent; outline-offset: 2px; } .ds-btn:focus-visible { outline-color: var(--color-amber); } .ds-btn-secondary { border: 1px solid var(--color-edge); background-color: var(--color-surface); color: var(--color-ink-muted); } .ds-btn-secondary:hover { border-color: var(--color-ink-subtle); background-color: var(--color-surface-muted); color: var(--color-ink); } .ds-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "The retry inside an error banner. Reads as part of the error rather than a second alarm.",
+      "html": "<button class=\"ds-btn-danger\">Try again</button>",
+      "css": ".ds-btn-danger { font-family: var(--font-sans); font-stretch: 82%; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-md, 0.375rem); padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.03em; border: 1px solid var(--color-critical-edge); background-color: var(--color-critical-surface); color: var(--color-critical); transition: background-color 150ms; outline: 2px solid transparent; outline-offset: 2px; } .ds-btn-danger:hover { background-color: color-mix(in oklab, var(--color-critical-surface) 70%, transparent); } .ds-btn-danger:focus-visible { outline-color: var(--color-amber); } .ds-btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-caution",
+      "description": "The printed cell — not a capsule. Five tones; caution shown, which is the one amber is allowed to reach because a PENDING order can still change.",
+      "html": "<span class=\"ds-badge ds-badge-caution\">Pending</span><span class=\"ds-badge ds-badge-positive\">Shipped</span><span class=\"ds-badge ds-badge-neutral\">Cancelled</span>",
+      "css": ".ds-badge { font-family: var(--font-sans); display: inline-flex; flex-shrink: 0; align-items: center; border-radius: var(--radius-md, 0.375rem); border: 1px solid transparent; padding: 0.125rem 0.5rem; margin-right: 0.5rem; font-size: 0.6875rem; line-height: 1.2; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; } .ds-badge-caution { border-color: var(--color-caution-edge); background-color: var(--color-caution-surface); color: var(--color-caution); } .ds-badge-positive { border-color: var(--color-positive-edge); background-color: var(--color-positive-surface); color: var(--color-positive); } .ds-badge-neutral { border-color: var(--color-hairline); background-color: var(--color-surface-muted); color: var(--color-ink-subtle); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Cut into the board rather than sitting on it: an edge border over the board's own colour, with a rail label above.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-search\">Search</label><input class=\"ds-input\" id=\"ds-search\" type=\"search\" placeholder=\"Search products by name\" />",
+      "css": ".ds-field-label { font-family: var(--font-sans); display: block; margin-bottom: 0.375rem; font-size: 0.6875rem; line-height: 1.2; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-stretch: 88%; color: var(--color-ink-subtle); } .ds-input { font-family: var(--font-sans); width: 100%; border-radius: var(--radius-md, 0.375rem); border: 1px solid var(--color-edge); background-color: var(--color-board); padding: 0.5rem 0.75rem; font-size: 0.8125rem; line-height: 1.45; color: var(--color-ink); caret-color: var(--color-amber); transition: border-color 150ms; outline: 2px solid transparent; outline-offset: 2px; } .ds-input::placeholder { color: var(--color-ink-faint); } .ds-input:focus-visible { outline-color: var(--color-amber); } .ds-input[aria-invalid=\"true\"] { border-color: var(--color-critical); }"
+    },
+    {
+      "name": "Category Tab Strip",
+      "kind": "nav",
+      "refersTo": "nav-tab",
+      "description": "A hairline tab strip, not a row of capsules. The active tab is marked by a 2px ink rule — never amber, because navigation is not a live figure. Each count is set as a figure.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab ds-tab-selected\" aria-pressed=\"true\">All<span class=\"ds-tab-count\">40</span></button><button class=\"ds-tab\" aria-pressed=\"false\">Electronics<span class=\"ds-tab-count\">12</span></button><button class=\"ds-tab\" aria-pressed=\"false\">Books &amp; Media<span class=\"ds-tab-count\">9</span></button></div>",
+      "css": ".ds-tabs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1.25rem; border-bottom: 1px solid var(--color-hairline); } .ds-tab { font-family: var(--font-sans); font-stretch: 82%; margin-bottom: -1px; display: inline-flex; align-items: baseline; gap: 0.375rem; border: none; border-bottom: 2px solid transparent; background: none; padding: 0 0.25rem 0.5rem; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; color: var(--color-ink-subtle); transition: color 150ms, border-color 150ms; outline: 2px solid transparent; outline-offset: 2px; } .ds-tab:hover { border-bottom-color: var(--color-edge); color: var(--color-ink-muted); } .ds-tab:focus-visible { outline-color: var(--color-amber); } .ds-tab-selected { border-bottom-color: var(--color-ink); color: var(--color-ink); } .ds-tab-count { font-variant-numeric: tabular-nums; font-stretch: 80%; letter-spacing: -0.01em; font-weight: 700; font-size: 0.6875rem; opacity: 0.7; }"
+    },
+    {
+      "name": "Column Rail",
+      "kind": "custom",
+      "refersTo": "column-rail",
+      "description": "The board's column headers in 11px tracked caps, on the same fixed grid template as the rows beneath. Hidden below 640px, where the rows stack and the columns no longer exist.",
+      "html": "<div class=\"ds-rail-row\" aria-hidden=\"true\"><span class=\"ds-rail\">Item</span><span class=\"ds-rail\">Stock</span><span class=\"ds-rail ds-rail-right\">Price</span><span></span></div>",
+      "css": ".ds-rail-row { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 7rem 10rem; align-items: center; column-gap: 1rem; padding: 0 1.25rem 0.5rem; } .ds-rail { font-family: var(--font-sans); font-size: 0.6875rem; line-height: 1.2; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-stretch: 88%; color: var(--color-ink-subtle); } .ds-rail-right { text-align: right; }"
+    },
+    {
+      "name": "Board Row",
+      "kind": "custom",
+      "refersTo": "board-row",
+      "description": "One flap on the board. Fixed column template aligns every figure; hover lifts the flap and turns the name amber; a sold-out row drops to the board's own colour because the row has fallen blank.",
+      "html": "<ul class=\"ds-board\"><li class=\"ds-row\"><div class=\"ds-row-item\"><h2 class=\"ds-row-name\"><a href=\"#\">Mechanical Keyboard</a></h2><p class=\"ds-rail\">Electronics</p><p class=\"ds-row-desc\">Tactile switches, no backlight.</p></div><div class=\"ds-row-stock\"><span class=\"ds-figure ds-figure-signal\">18</span> <span class=\"ds-unit\">in stock</span></div><div class=\"ds-row-price\"><span class=\"ds-figure ds-figure-lg\">$129.00</span></div><div class=\"ds-row-action\"><button class=\"ds-row-add\">Add to cart</button></div></li></ul>",
+      "css": ".ds-board { list-style: none; margin: 0; padding: 0; border: 1px solid var(--color-hairline); border-radius: var(--radius-lg, 0.5rem); background-color: var(--color-surface); overflow: hidden; } .ds-row { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 7rem 10rem; align-items: center; column-gap: 1rem; padding: 1rem 1.25rem; transition: background-color 150ms; } .ds-row + .ds-row { border-top: 1px solid var(--color-hairline); } .ds-row:hover { background-color: var(--color-surface-muted); } .ds-row:hover .ds-row-name a { color: var(--color-amber); } .ds-row-name { font-family: var(--font-sans); font-stretch: 82%; margin: 0; font-size: 1.125rem; line-height: 1.25; font-weight: 700; color: var(--color-ink); } .ds-row-name a { color: inherit; text-decoration: none; } .ds-row-desc { margin: 0.375rem 0 0; font-size: 0.8125rem; line-height: 1.45; color: var(--color-ink-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-rail { font-family: var(--font-sans); margin: 0.25rem 0 0; font-size: 0.6875rem; line-height: 1.2; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; font-stretch: 88%; color: var(--color-ink-subtle); } .ds-row-price { text-align: right; } .ds-figure { font-family: var(--font-sans); font-variant-numeric: tabular-nums; font-stretch: 80%; letter-spacing: -0.01em; font-weight: 700; color: var(--color-ink); } .ds-figure-lg { font-size: 1.5rem; line-height: 1.1; } .ds-figure-signal { font-size: 1.125rem; color: var(--color-signal); } .ds-unit { font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-signal); } .ds-row-action { justify-self: end; } .ds-row-add { font-family: var(--font-sans); font-stretch: 82%; border: none; border-radius: var(--radius-md, 0.375rem); background-color: var(--color-ink); color: var(--color-board); padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.03em; transition: background-color 150ms; } .ds-row-add:hover { background-color: #fff; }"
+    },
+    {
+      "name": "Stock Cell",
+      "kind": "custom",
+      "refersTo": "board-row",
+      "description": "Stock as a printed figure — signal green settled, amber below the low threshold of 5, struck through in alert red when gone. Carries the system's only authored motion: the flap turn, fired when the count changes.",
+      "html": "<div class=\"ds-stock-demo\"><span class=\"ds-stock ds-stock-settled\"><span class=\"ds-stock-figure ds-flap\">18</span><span class=\"ds-stock-unit\">in stock</span></span><span class=\"ds-stock ds-stock-low\"><span class=\"ds-stock-figure\">2</span><span class=\"ds-stock-unit\">left</span></span><span class=\"ds-stock-gone\"><s>Out of stock</s></span></div>",
+      "css": ".ds-stock-demo { display: flex; align-items: baseline; gap: 1.5rem; } .ds-stock { display: inline-flex; align-items: baseline; gap: 0.375rem; } .ds-stock-settled { color: var(--color-signal); } .ds-stock-low { color: var(--color-amber); } .ds-stock-figure { font-family: var(--font-sans); font-variant-numeric: tabular-nums; font-stretch: 80%; letter-spacing: -0.01em; font-weight: 700; font-size: 1.125rem; line-height: 1.25; display: inline-block; transform-origin: 50% 50%; } .ds-stock-unit, .ds-stock-gone { font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; } .ds-stock-gone { color: var(--color-critical); } @keyframes ds-flap-turn { 0% { transform: perspective(240px) rotateX(0deg); } 45% { transform: perspective(240px) rotateX(-72deg); } 100% { transform: perspective(240px) rotateX(0deg); } } .ds-flap { animation: ds-flap-turn 400ms cubic-bezier(0.16, 1, 0.3, 1); } @media (prefers-reduced-motion: reduce) { .ds-flap { animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "card",
+      "refersTo": "flap",
+      "description": "The only dashed line in the system: a request that succeeded with nothing to show is not a failure and must not be styled like one. The action is the way out.",
+      "html": "<div class=\"ds-empty\"><p class=\"ds-empty-title\">No products match your filters</p><p class=\"ds-empty-msg\">Nothing here matches “desk”. Try a shorter search, or a different category.</p><div class=\"ds-empty-action\"><button class=\"ds-btn-secondary-sm\">Clear filters</button></div></div>",
+      "css": ".ds-empty { border-radius: var(--radius-lg, 0.5rem); border: 1px dashed var(--color-edge); background-color: var(--color-surface); padding: 3.5rem 1.5rem; text-align: center; } .ds-empty-title { font-family: var(--font-sans); font-stretch: 82%; margin: 0; font-size: 1.125rem; line-height: 1.25; font-weight: 700; color: var(--color-ink); } .ds-empty-msg { font-family: var(--font-sans); margin: 0.75rem auto 0; max-width: 60ch; font-size: 1rem; line-height: 1.6; color: var(--color-ink-subtle); } .ds-empty-action { margin-top: 1.25rem; } .ds-btn-secondary-sm { font-family: var(--font-sans); font-stretch: 82%; border: 1px solid var(--color-edge); border-radius: var(--radius-md, 0.375rem); background-color: var(--color-surface); color: var(--color-ink-muted); padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.03em; transition: color 150ms, border-color 150ms, background-color 150ms; } .ds-btn-secondary-sm:hover { border-color: var(--color-ink-subtle); background-color: var(--color-surface-muted); color: var(--color-ink); }"
+    },
+    {
+      "name": "Error Banner",
+      "kind": "custom",
+      "refersTo": "button-danger",
+      "description": "Renders what the backend actually said and carries the retry itself, so 'what went wrong' and 'try it again' are one component. Retry is omitted on checkout, where a repeated POST would place a second order.",
+      "html": "<div class=\"ds-error\" role=\"alert\">Insufficient stock for Mechanical Keyboard.<div class=\"ds-error-action\"><button class=\"ds-btn-danger\">Try again</button></div></div>",
+      "css": ".ds-error { font-family: var(--font-sans); border-radius: var(--radius-md, 0.375rem); border: 1px solid var(--color-critical-edge); background-color: var(--color-critical-surface); padding: 0.625rem 0.75rem; font-size: 0.8125rem; line-height: 1.45; color: var(--color-critical); } .ds-error-action { margin-top: 0.625rem; } .ds-btn-danger { font-family: var(--font-sans); font-stretch: 82%; border-radius: var(--radius-md, 0.375rem); padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 600; letter-spacing: 0.03em; border: 1px solid var(--color-critical-edge); background-color: color-mix(in oklab, var(--color-critical-surface) 60%, transparent); color: var(--color-critical); } .ds-btn-danger:hover { background-color: color-mix(in oklab, var(--color-critical-surface) 90%, transparent); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departures Board",
+    "overview": "A split-flap arrivals board exists for one reason: to make a changing number trustworthy at a glance. This store's stock counts are guaranteed by a database transaction that cannot oversell, so the board is the medium here rather than a metaphor — the interface is doing the same job as the mechanism it is drawn from. Every decision follows from that. The catalog is rows on a dark enamelled board, not cards on a white page, because a board is rows precisely so that every price lands in one column, on one baseline, where a person can run their eye down it and compare.\n\nThe world is deliberately dark and single-polarity: a concourse board at dusk, the only lit surface in view. Flaps are matte cards one shade above the board, never white ones — a real Solari variant, and the reason nothing in the system needs a shadow. Depth comes from three close steps of dark and a 1px chassis hairline; that hairline is the entire elevation vocabulary. Archivo, self-hosted with both variable axes, supplies the board's own grammar: condensed tracked caps for rails and labels, tabular condensed figures for money and counts, normal width for prose. Hierarchy escalates by narrowing before it escalates by growing.\n\nThe refusal that shapes the catalog is explicit: there is no product photography and no database column that could hold any, so the white product card with an empty image slot is rejected outright. A row admits there is no picture and gets denser instead. What is left to look at — name, category, stock, price — is what the type has to carry, and it does. The wordmark currently reads “Commerce” and is a confirmed placeholder; the type treatment it is set in is not.",
+    "keyCharacteristics": [
+      "One polarity: light-on-dark everywhere, no light variant.",
+      "Amber is reserved for what can still change — nowhere else.",
+      "Rows and rails, never cards and shadows. Zero box-shadow in the entire app.",
+      "Width as hierarchy: condensed lettering for board voice, normal width for reading.",
+      "Every number a person compares is set in tabular condensed figures, in a fixed column.",
+      "Exactly one authored motion: the stock figure's flap turn."
+    ],
+    "rules": [
+      {
+        "name": "The Reserved Amber Rule",
+        "body": "Amber marks something that is currently changing and nothing else: a live figure, focus, selection, the caret, the hover target. It is deliberately absent from buttons and from navigation — including the active category tab, which is marked in ink. The moment amber decorates something static, the board loses the one signal it exists to send. This is the single most important constraint in the system.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Polarity Rule",
+        "body": "Light-on-dark, everywhere, with color-scheme: dark declared on html. There is no light mode and no prefers-color-scheme branch. A flap is a dark card a shade above the board; a white panel is not a variant of this world, it is a different world wearing its layout.",
+        "section": "colors"
+      },
+      {
+        "name": "The Role Names Only Rule",
+        "body": "Components consume the semantic role names (text-ink-subtle, bg-surface, border-hairline). A raw Tailwind palette class — text-slate-500, bg-gray-900 — is a defect, not a shortcut: there are none in the app, and the token pass exists so the world can be re-lit by changing values rather than rewriting files.",
+        "section": "colors"
+      },
+      {
+        "name": "The Neutral Cancellation Rule",
+        "body": "CANCELLED is neutral, not critical. A customer who cancelled their own order has not hit an error, and red would tell them something is wrong every time they open their history.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width-Before-Size Rule",
+        "body": "Hierarchy is carried by width as much as by size. Board voice — names, headings, figures, rails, button labels — runs condensed (condensed at width 82, figures at 80, rail at 88); prose runs normal width. Escalating a heading by making it condensed and heavier is preferred to making it bigger.",
+        "section": "typography"
+      },
+      {
+        "name": "The Figures Rule",
+        "body": "Every number a person might compare or add up gets the figures utility: tabular, condensed, weight 700. Prices, stock counts, category counts, 'Showing 1–12 of 40'. A number set in running text drifts out of its column and stops being comparable.",
+        "section": "typography"
+      },
+      {
+        "name": "The Rail-Not-Eyebrow Rule",
+        "body": "A set of rows is labelled by the rail above it, which is the board's own wayfinding. Nothing gets a kicker or an eyebrow line above its heading — the product's category sits under its name, as a tag on the item rather than a title for it, so the two facts that matter are not pushed down the flap.",
+        "section": "typography"
+      },
+      {
+        "name": "The Held-Level Rule",
+        "body": "Lettering carries character through width and tracking; the numbers are machine-true. Figures are tabular and rigidly aligned, never tracked for effect.",
+        "section": "typography"
+      },
+      {
+        "name": "The Same Template Rule",
+        "body": "A skeleton uses the row's box model and column template exactly, so the switch from loading to loaded does not reflow the board or bounce the pagination down the page. A skeleton that is merely 'about the right height' is a layout shift waiting to happen.",
+        "section": "layout"
+      },
+      {
+        "name": "The Controls Stay Mounted Rule",
+        "body": "Filters, search and pagination render through loading and error states. Losing the controls is what turns a failed fetch into a dead end.",
+        "section": "layout"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Separation is a 1px line in hairline — a divider, a panel border, or the gap in a hairline-grid. Never a shadow, never a gap alone, never a heavier rule.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Tonal-State Rule",
+        "body": "Interactive state is a step on the dark ramp or an opacity change. If a state needs to be more visible than that, it needs a border colour, not elevation.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Printed Cell Rule",
+        "body": "State and status render as a printed cell, never a capsule. If a shape needs rounded-full, it is either a spinner or it is wrong.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Drawn Stroke Rule",
+        "body": "Icons are drawn SVG paths at stroke 1.75, never unicode glyphs standing in for icons. A glyph borrows whatever the text face draws at whatever weight surrounds it, which is why a −/+ stepper never matches itself optically. The one exception is × between a price and a quantity: that is a real multiplication sign doing typographic work.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do consume the semantic role names — ink, ink-muted, ink-subtle, ink-faint, board, surface, surface-muted, surface-sunken, hairline, edge, skeleton, amber, signal, alert, the critical / caution / positive / info families, and focus.",
+      "Do reach for the existing utilities before writing classes: surface, hairline-grid, rail, figures, condensed, focus-ring, badge, animate-flap-turn.",
+      "Do set every comparable number with figures, and give it a fixed column when it sits in a list.",
+      "Do route every control through Button / buttonClass(), and use buttonClass() on a <Link> when the control navigates so middle-click and 'copy link address' keep working.",
+      "Do use md (44px) for any action a thumb has to hit; reserve sm for pointer-dense chrome.",
+      "Do name what a count counts — '40 products', never a bare '40'.",
+      "Do give a failure the specific thing the backend said plus the next action, and put the retry inside ErrorBanner where it belongs.",
+      "Do keep type-role names (--text-*) and colour names (--color-*) disjoint: Tailwind generates text-<name> from both namespaces, so a --text-board beside a --color-board would collide on one utility.",
+      "Do reduce motion rather than delete it under prefers-reduced-motion — the skeleton's pulse is information, so the opacity change still lands, it just stops repeating."
+    ],
+    "donts": [
+      "Don't spend amber on anything static. Not a button, not a heading, not an active nav marker, not a decorative rule. It means 'this can still change.'",
+      "Don't introduce a light surface or a light mode. One polarity; a flap is a dark card a shade above the board.",
+      "Don't write a raw Tailwind palette class (text-slate-500, bg-gray-800, text-white). On this inverted palette bg-ink already IS near-white.",
+      "Don't add a box-shadow. Depth is three steps of dark and a 1px hairline; there are none in the app and there should stay none.",
+      "Don't use rounded-full for state, status or counts — the printed cell is the shape. A spinner is the only legitimate circle.",
+      "Don't build a product card with an image slot. There is no photography and no schema column for any; a row that admits it and gets denser is the design, not a stopgap.",
+      "Don't put an eyebrow or kicker above a heading. The rail above a set of rows is the label; a product's category goes under its name.",
+      "Don't stand a unicode glyph in for an icon. Drawn paths at stroke 1.75, inheriting currentColor.",
+      "Don't author a second bespoke animation. The flap turn is the one authored moment and its scarcity is what makes it read as the board moving.",
+      "Don't render a heading larger than the figures on the same screen. The visitor came to read the number, not the name of a database table.",
+      "Don't signal an error state with colour alone — a border change always comes with a message.",
+      "Don't offer a one-click retry on checkout. POST /api/orders has no idempotency key, so a retry of a request that actually succeeded places a second order."
+    ],
+    "open": [
+      "Named-forward ceiling work, not yet built: no flap carries the horizontal seam that most identifies the medium; figures are set as text rather than in character cells; the board is a 1024px centred panel rather than something read across the window.",
+      "Two rounded-full count bubbles survive the Printed Cell Rule — the header cart count and the Admin marker on /account. The rule is correct; these are the drift.",
+      "/account is behind the rest of the system: its two <dt> labels hand-roll the rail's properties instead of using the rail utility, and its Admin marker is a pill where AppLayout uses a proper badge.",
+      "Touch target on the board's add control: it renders at sm (~30px) inside a tile whose title link covers everything, so a mis-tap navigates away. Left for a dedicated pass.",
+      "Copy is untouched by this pass: the catalog's <h1> is still 'Products', the detail page prints 'Product ID', and a sold-out row says 'Out of stock' twice.",
+      "Seed data contradicts its own labels ('Desk Lamp' under BOOKS & MEDIA, 'The Pragmatic Programmer' under ELECTRONICS) and a developer note ships as product copy. A database change, awaiting the user's decision.",
+      "'Commerce' is a placeholder wordmark. Its type treatment — row-scale condensed caps at 0.16em — is a real decision and survives a rename; the word does not.",
+      "No automated tests exist in frontend/. Nothing asserts that any rule above still holds; npm run lint and tsc -b are the only gates."
+    ]
+  }
+}

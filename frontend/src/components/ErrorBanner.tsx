@@ -1,4 +1,5 @@
 import { ApiError } from "../lib/api";
+import { Button } from "./Button";
 
 interface ErrorBannerProps {
   error: unknown;
@@ -48,7 +49,7 @@ export function ErrorBanner({
   return (
     <div
       role="alert"
-      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+      className="rounded-control border border-critical-edge bg-critical-surface px-3 py-2.5 text-meta text-critical"
     >
       {messages.length === 1 ? (
         messages[0]
@@ -62,14 +63,9 @@ export function ErrorBanner({
 
       {onRetry && (
         <div className="mt-2.5">
-          <button
-            type="button"
-            onClick={onRetry}
-            disabled={retrying}
-            className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 transition outline-none hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button variant="danger" size="sm" onClick={onRetry} disabled={retrying}>
             {retrying ? "Retrying…" : "Try again"}
-          </button>
+          </Button>
         </div>
       )}
     </div>
