@@ -49,12 +49,15 @@ Thumbs.db
 .github/hooks/
 .github/skills/
 
-# Generated review output: screenshots (~0.5 MB a pass) and point-in-time
-# critique scores, both regenerated every run and stale as soon as the code
-# moves. .impeccable/design.json IS tracked — it is the token source the UI is
-# built against, so the design system stays reproducible from the repo.
+# Generated review output. Screenshots stay out: ~0.5 MB a pass, regenerated
+# every run, and worthless the moment the code moves.
+#
+# .impeccable/critique/ IS tracked — the reports are small text and they record
+# why the UI was rebuilt, which the diff alone does not show. They are dated
+# snapshots, so read critique/README.md before treating any of them as current.
+# .impeccable/design.json is tracked too: it is the token source the UI is built
+# against, so the design system stays reproducible from the repo.
 .impeccable/review/
-.impeccable/critique/
 .impeccable/questions/
 .impeccable/config.local.json
 
