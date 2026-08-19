@@ -40,6 +40,12 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_test?schema=public
+      # prisma/schema.prisma declares directUrl = env("DIRECT_URL"), and Prisma
+      # fails with P1012 if it is missing — there is no fallback to url. It only
+      # needs to differ from DATABASE_URL in production, where the app runs
+      # through a transaction-mode pooler that cannot hold Migrate's advisory
+      # lock. This service container is a direct connection, so it is the same value.
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_test?schema=public
       JWT_SECRET: ci-only-test-secret-not-used-anywhere-else
       NODE_ENV: test
 

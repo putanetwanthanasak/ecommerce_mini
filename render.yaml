@@ -1,0 +1,85 @@
+# Render Blueprint — the backend API.
+#
+# Committed so the service is reproducible instead of living only as a set of
+# dashboard fields nobody can diff. Render reads this from the repo root, which
+# is why rootDir points at backend/ (this is a monorepo with no root
+# package.json — see CLAUDE.md "Repository layout").
+#
+# Secrets are NOT here. Every value below is either public or marked
+# `sync: false`, which tells Render "prompt for this, do not read it from the
+# repo". DATABASE_URL, DIRECT_URL and JWT_SECRET are set in the dashboard.
+
+services:
+  - type: web
+    name: ecommerce-backend
+    runtime: node
+    plan: free
+    region: singapore # nearest to the Supabase project (ap-southeast-1)
+    rootDir: backend
+
+    # npm ci, not npm install: it installs exactly what package-lock.json pins
+    # and fails if the two disagree, which is what a deploy wants.
+    #
+    # `prisma generate` must run here. The generated client is written into
+    # node_modules and is NOT committed, so without this step the compiled
+    # output imports a client that does not exist.
+    #
+    # Migrations are deliberately absent from the build: a build can run on a
+    # branch, in parallel, or be retried, and none of those are moments to be
+    # applying DDL to a live database. They belong in preDeployCommand below.
+    buildCommand: npm ci && npx prisma generate && npm run build
+
+    # Runs after a successful build, before any traffic is shifted to the new
+    # instance. If it exits non-zero the deploy is aborted and the previous
+    # version keeps serving — which is the behaviour you want for a migration.
+    #
+    # `migrate deploy` only ever applies committed migration files, and never
+    # prompts. It is NOT `migrate dev`, which can decide the schema has drifted
+    # and offer to reset the database — destructive and interactive, so it must
+    # never run against production.
+    #
+    # This resolves the connection through prisma/schema.prisma's `directUrl`
+    # (DIRECT_URL), because Prisma Migrate needs a session-level advisory lock
+    # that Supabase's transaction-mode pooler cannot hold — against port 6543 it
+    # hangs indefinitely rather than failing. See README "Deployment".
+    preDeployCommand: npx prisma migrate deploy
+
+    # The compiled output. Never ts-node-dev: that is the dev-only watcher, it
+    # skips type checking, and it would recompile on a container with no dev
+    # dependencies guaranteed to stick around.
+    startCommand: npm run start
+
+    # Render restarts the service if this stops returning 2xx.
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render injects a PORT and expects the process to bind it. src/index.ts
+      # already reads process.env.PORT, falling back to 4000 locally.
+      - key: PORT
+        value: 10000
+
+      # Runtime connection: Supabase Supavisor, TRANSACTION mode (port 6543)
+      # with ?pgbouncer=true. The direct db.<ref>.supabase.co host is IPv6-only
+      # and Render has no outbound IPv6, so the pooler is required, not optional.
+      - key: DATABASE_URL
+        sync: false
+
+      # Migrations only: Supavisor SESSION mode (port 5432). See the comment on
+      # preDeployCommand and prisma/schema.prisma.
+      - key: DIRECT_URL
+        sync: false
+
+      # Freshly generated for production — never the development secret. Every
+      # issued token is signed with this, so changing it invalidates all of them.
+      - key: JWT_SECRET
+        sync: false
+
+      # Comma-separated browser origins allowed to call this API — the Vercel
+      # frontend, plus localhost so a local frontend can talk to the deployed
+      # backend. Requests with no Origin (Render's health check, curl) are
+      # always allowed; see src/lib/corsOptions.ts.
+      - key: CORS_ORIGINS
+        sync: false
