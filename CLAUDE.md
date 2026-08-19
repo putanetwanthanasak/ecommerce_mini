@@ -6,7 +6,7 @@ What this is
 
 E-commerce mini platform. Portfolio project — the goal is code that demonstrates real backend engineering (concurrency safety, authorization, data integrity), not just working CRUD.
 
-Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing), the customer-facing catalog (a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page), the buying path (a client-side cart at /cart, checkout at /checkout), and the customer's order records: a paginated history at /orders and a single order at /orders/:id, which doubles as the post-checkout confirmation. No admin screens yet, and no frontend tests. Not deployed anywhere.
+Status: Auth, Category, Product, and Order routes are complete and manually verified. Automated tests and CI are done — 21 Vitest/Supertest tests in backend/src/__tests__/, including the concurrent-order race, with GitHub Actions running typecheck plus the suite against an ephemeral Postgres on every push and PR, alongside a parallel job that lints and builds the frontend. The frontend covers auth (login, register, protected routing), the customer-facing catalog (a paginated product grid at /products with debounced search and category filtering, all reflected in the URL, plus a product detail page), the buying path (a client-side cart at /cart, checkout at /checkout), and the customer's order records: a paginated history at /orders and a single order at /orders/:id, which doubles as the post-checkout confirmation. No admin screens yet, and no frontend tests. Deployment config is committed — `render.yaml` (backend) and `frontend/vercel.json` — see the Deployment section below and README "Deployment".
 
 Repository layout
 
@@ -258,6 +258,32 @@ onRetry is deliberately omitted in two places. Login and register are retried by
 
 WHY A FAILING QUERY CAN LOOK LIKE IT NEVER SETTLES — this cost a real investigation, so it is written down in main.tsx too. TanStack pauses the gap between retries while the document is hidden (focusManager.isFocused() is document.visibilityState !== "hidden"). Such a query sits at fetchStatus: "paused" with status: "pending", so isError never becomes true and the page shows its skeleton indefinitely; it resumes and settles the moment the tab is looked at. That is correct library behaviour — there is no point burning retries on a tab nobody is watching — and it is NOT to be switched off. But it means an automated check driving a background tab will watch a query stall forever and conclude the error state is unreachable. It isn't; it is waiting for focus. Reproduce error states in a visible tab, or call focusManager.setFocused(true) in the harness.
 
+Deployment
+
+Backend on Render, frontend on Vercel, database on the existing Supabase instance. `render.yaml` and `frontend/vercel.json` are committed so the setup is reproducible; secrets are `sync: false` / dashboard-only. Full walkthrough in README "Deployment". Four things here are non-obvious and were established by measurement.
+
+1. The Supabase pooler is mandatory from Render, and the two modes are not interchangeable
+
+`db.<ref>.supabase.co` resolves to IPv6 ONLY — no A record, only AAAA. Render has no outbound IPv6, so the direct connection cannot be used from it at all. Supavisor is the only reachable path (its hosts do have IPv4), and the username changes to `postgres.<ref>`.
+
+Runtime uses TRANSACTION mode (port 6543, `?pgbouncer=true`). Migrations must NOT: Prisma Migrate takes a session-level advisory lock that transaction pooling cannot hold, and it does not error — `prisma migrate deploy` against 6543 HANGS INDEFINITELY (measured: five minutes, no output). A release command pointed at the pooled URL hangs every deploy. That is what `directUrl` in schema.prisma exists for — migrations go through SESSION mode (port 5432) via `DIRECT_URL`.
+
+Verified through the transaction-mode pooler rather than assumed: all 21 tests pass including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
+
+2. DIRECT_URL is required once declared
+
+Prisma fails with `P1012 Environment variable not found` if `DIRECT_URL` is missing — there is no fallback to `url`. So backend/.env, .env.example and the CI backend job all define it. Locally and in CI it is simply the same value as `DATABASE_URL` (both are direct connections); only production needs the two to differ. Do not "simplify" this by deleting `directUrl` — that silently puts migrations back on the pooler.
+
+3. A green frontend build proves nothing about whether the app shipped
+
+Already recorded as frontend invariant 3 and the CI note, but the magnitude is worth having: `lib/api.ts` throws at module load when `VITE_API_URL` is unset, that throw is top-level, so the bundler eliminates the whole app and STILL EXITS 0. Measured — without it the bundle is 224 KB and contains no "Sign in"; with it, 316 KB and the app is present. The broken bundle is not empty, it is 224 KB of React, so size alone does not catch it. Assert on content: `grep -c "Sign in" dist/assets/*.js`.
+
+4. CORS is configuration, and no-Origin requests must stay allowed
+
+`src/lib/corsOptions.ts` reads `CORS_ORIGINS` (comma-separated); bare `cors()` reflected any origin, which is wrong on the public internet. Requests with NO `Origin` header are always allowed — curl, Render's health check, Supertest — because CORS is browser-enforced, so refusing them breaks tooling and stops no attacker. A disallowed origin gets no CORS headers rather than an error: returning a 500 would make a blocked origin look like a broken API. Unset falls back to localhost:5173, so an unconfigured production deploy fails closed.
+
+Render's free tier sleeps after ~15 minutes idle and then takes 30-50s to answer. That is not worked around (a keep-alive pinger just burns the free hours); instead `SubmitButton` explains the wait after four seconds, so login and register both stop looking hung. Don't remove that without replacing it — a silent 50-second submit reads as a frozen app and invites a reload, which abandons the request already warming the server.
+
 Conventions
 Status codes
 Code	Meaning
@@ -298,7 +324,7 @@ No refresh tokens. A 1-day JWT can't be revoked; logout is client-side only.
 price serializes as a JSON string ("39.99", 32.50 → "32.5", 38.00 → "38"). That's Prisma's Decimal behavior. The frontend handles it in lib/money.ts — see frontend invariant 7.
 No status-transition rules beyond cancel. SHIPPED → PENDING is currently legal.
 No structured logging. console.error only; production wants Pino or Winston with request IDs.
-No payment integration, not deployed.
+No payment integration.
 The frontend has no automated tests. CI lints and builds it (which type checks it via tsc -b), but nothing asserts behaviour. The cart/checkout logic was deliberately factored into pure modules (cart/cartOps.ts, cart/cartStorage.ts, orders/checkoutError.ts, lib/money.ts) that a test suite can exercise without a DOM — that is where frontend tests should start.
 The frontend covers auth, the product catalog, the buying path (cart, checkout) and the customer's order records (history list, order detail). No admin screens yet, and the customer can only read orders — no cancelling from the UI.
 No idempotency on POST /api/orders. A retried or duplicated request creates a second order; only the client's in-flight guard prevents it.

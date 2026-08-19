@@ -7,7 +7,25 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  // Runtime connection. In production this is Supabase's Supavisor pooler in
+  // TRANSACTION mode (port 6543, ?pgbouncer=true) — see README "Deployment".
+  url = env("DATABASE_URL")
+
+  // Migrations only. Prisma Migrate takes a SESSION-level advisory lock, which
+  // transaction-mode pooling cannot hold: `prisma migrate deploy` against port
+  // 6543 hangs forever rather than failing (measured — it sat for 5 minutes
+  // with no output). directUrl points migrations at a connection that can hold
+  // that lock (session mode, port 5432), while the app keeps the pooled one.
+  //
+  // This is REQUIRED once declared — Prisma fails with P1012 "Environment
+  // variable not found" if it is missing, with no fallback to url. That is why
+  // .env.example, backend/.env and the CI job all define it. Locally and in CI
+  // it is simply the same value as DATABASE_URL, because those are already
+  // direct connections; only production needs the two to differ. The loud
+  // failure is preferable to a silent one: forgetting it stops the build
+  // instead of quietly migrating through the pooler and hanging.
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
