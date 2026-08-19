@@ -20,14 +20,53 @@ services:
     # npm ci, not npm install: it installs exactly what package-lock.json pins
     # and fails if the two disagree, which is what a deploy wants.
     #
+    # --include=dev IS REQUIRED, and this is the non-obvious part.
+    #
+    # NODE_ENV=production is declared below, and Render injects env vars into the
+    # BUILD as well as the runtime. npm treats NODE_ENV=production as "omit
+    # devDependencies", so a plain `npm ci` here installs none of them — and this
+    # is a TypeScript project whose compiler and type packages all live there.
+    # The build then fails with errors that look like missing dependencies rather
+    # than a missing install flag:
+    #
+    #   src/app.ts: error TS7016: Could not find a declaration file for module 'cors'
+    #   src/index.ts: error TS2580: Cannot find name 'process'
+    #
+    # Reproduced from a clean checkout: without the flag `npm run build` exits 2
+    # with exactly those errors; with it, it exits 0 and emits dist/.
+    #
+    # The failure is also partial in a way that misleads. `typescript` and
+    # `prisma` survive a production install anyway, because @prisma/client
+    # depends on both — so the compiler is present and only the @types/* packages
+    # are missing. That is incidental to Prisma's dependency tree, not something
+    # to rely on.
+    #
+    # The alternative was to set NODE_ENV only at runtime, but Render has no
+    # build-vs-runtime scoping for envVars: the only way to get it is to drop
+    # NODE_ENV from envVars and inline it into startCommand. That hides a
+    # load-bearing value inside a command string, makes the dashboard show
+    # NODE_ENV as unset, and src/lib/prisma.ts branches on it. Declaring it once
+    # here and making the build's extra need explicit at the build is clearer.
+    #
+    # Type packages are deliberately NOT promoted into `dependencies` — that
+    # would put build-only packages in the runtime's dependency list permanently.
+    # Note that on Render's native Node runtime the build and the running service
+    # share a filesystem, so devDependencies do remain on disk at runtime; they
+    # are simply never imported. Appending `&& npm prune --omit=dev` would strip
+    # them (verified: it leaves @prisma/client and the generated query engine
+    # intact). It is left off because the win is unused disk space on a free
+    # instance, while the failure mode — silently removing something the runtime
+    # needs — is far worse than the problem.
+    #
     # `prisma generate` must run here. The generated client is written into
     # node_modules and is NOT committed, so without this step the compiled
-    # output imports a client that does not exist.
+    # output imports a client that does not exist. It does not need DATABASE_URL
+    # or DIRECT_URL (verified — it generates fine with neither set).
     #
     # Migrations are deliberately absent from the build: a build can run on a
     # branch, in parallel, or be retried, and none of those are moments to be
     # applying DDL to a live database. See the note below on where they do run.
-    buildCommand: npm ci && npx prisma generate && npm run build
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
 
     # MIGRATIONS ARE APPLIED MANUALLY — there is deliberately no
     # preDeployCommand here.
