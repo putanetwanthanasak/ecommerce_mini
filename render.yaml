@@ -26,34 +26,47 @@ services:
     #
     # Migrations are deliberately absent from the build: a build can run on a
     # branch, in parallel, or be retried, and none of those are moments to be
-    # applying DDL to a live database. They belong in preDeployCommand below.
+    # applying DDL to a live database. See the note below on where they do run.
     buildCommand: npm ci && npx prisma generate && npm run build
 
-    # Runs after a successful build, before any traffic is shifted to the new
-    # instance. If it exits non-zero the deploy is aborted and the previous
-    # version keeps serving — which is the behaviour you want for a migration.
+    # MIGRATIONS ARE APPLIED MANUALLY — there is deliberately no
+    # preDeployCommand here.
     #
-    # `migrate deploy` only ever applies committed migration files, and never
-    # prompts. It is NOT `migrate dev`, which can decide the schema has drifted
-    # and offer to reset the database — destructive and interactive, so it must
-    # never run against production.
+    # Render rejects it outright on the free tier:
+    #   services[0] pre-deploy command is not supported for free tier services
+    # It is not ignored with a warning, it fails blueprint validation, so the
+    # whole service cannot be created while it is present.
     #
-    # This resolves the connection through prisma/schema.prisma's `directUrl`
-    # (DIRECT_URL), because Prisma Migrate needs a session-level advisory lock
-    # that Supabase's transaction-mode pooler cannot hold — against port 6543 it
-    # hangs indefinitely rather than failing. See README "Deployment".
+    # Do NOT solve this by appending `npx prisma migrate deploy` to
+    # buildCommand. A build runs on branches, can run concurrently with another
+    # build, and is retried automatically — so DDL there can hit a live database
+    # at a moment nobody chose, possibly twice at once. The build stays a pure
+    # compile step.
     #
-    # NOTE: preDeployCommand is a PAID-plan feature on Render. On `plan: free`
-    # it is ignored or rejected, so migrations will NOT run automatically. Do
-    # not "fix" that by moving it into buildCommand — a build can run on a
-    # branch, concurrently, or be retried, none of which are moments to apply
-    # DDL to a live database. On the free tier, apply migrations deliberately
-    # from a trusted machine instead, pointing at the SESSION-mode URL:
+    # Instead, run migrations deliberately from a trusted machine BEFORE
+    # deploying, pointing at the SESSION-mode pooler URL:
     #
     #     cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy
     #
-    # (still `migrate deploy`, never `migrate dev`.)
-    preDeployCommand: npx prisma migrate deploy
+    # DATABASE_URL is overridden on purpose: Prisma Migrate needs a
+    # session-level advisory lock, which Supabase's transaction-mode pooler
+    # (port 6543) cannot hold — there it hangs indefinitely rather than
+    # failing. Session mode is port 5432, which is what DIRECT_URL points at.
+    #
+    # Always `migrate deploy`, never `migrate dev`: deploy only applies
+    # committed migration files and never prompts, while dev can decide the
+    # schema has drifted and offer to RESET the database.
+    #
+    # The schema is already current on Supabase, so nothing is pending for the
+    # first deploy. This step only matters when a new migration is added.
+    #
+    # Upgrading off the free tier is what makes this automatable again — at
+    # which point restore:
+    #
+    #     preDeployCommand: npx prisma migrate deploy
+    #
+    # which runs after a successful build and before traffic shifts, aborting
+    # the deploy on a non-zero exit with the old version still serving.
 
     # The compiled output. Never ts-node-dev: that is the dev-only watcher, it
     # skips type checking, and it would recompile on a container with no dev
