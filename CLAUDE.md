@@ -168,6 +168,18 @@ Order history must survive a price change. Never resolve a historical order's li
 
 Deleting a category with products, or a product with order items, returns 409. Check the child count before the delete rather than letting a constraint error surface.
 
+8. RLS is enabled on every table, with no policies, on purpose
+
+The database is Supabase-hosted, and Supabase serves every table in the `public` schema through PostgREST and its client SDKs to anyone holding the project's anon key. With RLS off, that made every table world-readable — which is what Supabase's advisor flagged. `prisma/migrations/20260819115112_enable_row_level_security/` turns RLS on for `users`, `categories`, `products`, `orders`, `order_items` **and `_prisma_migrations`**, and adds **no policies**: RLS on with zero policies denies the `anon` and `authenticated` roles every row, which closes that path completely.
+
+`_prisma_migrations` is included even though it is Prisma's bookkeeping rather than application data — it sits in `public` like the rest, so PostgREST exposes it too, leaking migration names, timestamps and checksums. Covering all six means the advisor comes back clean and no table looks like it was forgotten.
+
+It was done as a migration rather than in the dashboard so it is reproducible and CI applies it to the ephemeral Postgres like any other change.
+
+Prisma is unaffected — it connects over `DATABASE_URL` as `postgres`, which owns the tables and is `BYPASSRLS` (verified: `rolbypassrls = true`, and the full suite passes unchanged after applying). `FORCE ROW LEVEL SECURITY` is deliberately not set; it would subject the owner to RLS too, and with no policies that locks the API out of its own database.
+
+Do not "fix" this by adding permissive policies. A `USING (true)` policy re-opens exactly the direct-from-browser access the migration exists to shut. Authorization for this app lives in Express — requireAuth, requireAdmin, and the per-row ownership checks — where it is tested. If a feature ever genuinely needs the Supabase SDK, real `auth.uid()` policies are its own deliberate change. The reasoning is repeated in the migration's SQL comment so it is visible at the point someone would edit it.
+
 Frontend invariants
 
 Same idea as above: these encode decisions that are easy to undo by accident.
