@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { Button } from "../components/Button";
+import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
 import { useCart } from "../cart/cartContext";
 import { CartRow } from "../cart/CartRow";
 import { useCartLines } from "../cart/useCartLines";
 import { formatCents, lineTotalCents, sumCents } from "../lib/money";
-
-const ACTION_BUTTON =
-  "inline-block rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 export function CartPage() {
   const { items, itemCount, isEmpty, setQuantity, removeItem, clear } = useCart();
@@ -25,13 +24,13 @@ export function CartPage() {
   if (isEmpty) {
     return (
       <AppLayout>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Your cart</h1>
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your cart</h1>
         <div className="mt-8">
           <EmptyState
             title="Your cart is empty"
             message="Browse the catalog and add something to get started."
             action={
-              <Link to="/products" className={ACTION_BUTTON}>
+              <Link to="/products" className={buttonClass()}>
                 Browse products
               </Link>
             }
@@ -44,14 +43,14 @@ export function CartPage() {
   return (
     <AppLayout>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Your cart</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your cart</h1>
+        <p className="text-meta text-ink-subtle">
           {itemCount} {itemCount === 1 ? "item" : "items"}
           {isLoading && " · checking stock…"}
         </p>
       </div>
 
-      <ul className="mt-6 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-xs">
+      <ul className="surface mt-6 divide-y divide-hairline">
         {lines.map((line) => (
           <CartRow
             key={line.item.productId}
@@ -63,14 +62,12 @@ export function CartPage() {
       </ul>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <button type="button" onClick={clear} className={ACTION_BUTTON}>
-          Clear cart
-        </button>
+        <Button onClick={clear}>Clear cart</Button>
 
         <div className="flex flex-wrap items-center gap-5">
           <div className="text-right">
-            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">Total</p>
-            <p className="text-2xl font-semibold text-slate-900">{formatCents(totalCents)}</p>
+            <p className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Total</p>
+            <p className="figures text-figure text-ink">{formatCents(totalCents)}</p>
           </div>
 
           {/*
@@ -84,27 +81,20 @@ export function CartPage() {
            */}
           {hasUnavailable ? (
             <div className="text-right">
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed rounded-lg bg-slate-300 px-5 py-2.5 text-sm font-medium text-white"
-              >
+              <Button variant="primary" disabled>
                 Checkout
-              </button>
-              <p className="mt-1.5 text-xs text-red-700">Remove unavailable items first.</p>
+              </Button>
+              <p className="mt-1.5 text-rail text-critical">Remove unavailable items first.</p>
             </div>
           ) : (
-            <Link
-              to="/checkout"
-              className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition outline-none hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-slate-300"
-            >
+            <Link to="/checkout" className={buttonClass({ variant: "primary" })}>
               Checkout
             </Link>
           )}
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-slate-400">
+      <p className="mt-4 text-rail text-ink-faint">
         Prices are confirmed by the server when you place the order.
       </p>
     </AppLayout>

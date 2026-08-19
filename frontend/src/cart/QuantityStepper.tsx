@@ -1,5 +1,5 @@
-const BUTTON =
-  "h-8 w-8 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-white";
+import { Button } from "../components/Button";
+import { MinusIcon, PlusIcon } from "../components/icons";
 
 interface QuantityStepperProps {
   quantity: number;
@@ -41,15 +41,14 @@ export function QuantityStepper({
 
   return (
     <div className="flex items-center gap-1.5">
-      <button
-        type="button"
-        className={BUTTON}
+      <Button
+        size="icon"
         disabled={disabled || quantity <= 1}
         onClick={() => onChange(quantity - 1)}
         aria-label={`Decrease quantity of ${label}`}
       >
-        −
-      </button>
+        <MinusIcon />
+      </Button>
 
       <input
         type="number"
@@ -60,18 +59,17 @@ export function QuantityStepper({
         disabled={disabled}
         onChange={(event) => handleTyped(event.target.value)}
         aria-label={`Quantity of ${label}`}
-        className="h-8 w-14 rounded-lg border border-slate-300 px-2 text-center text-sm text-slate-900 outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+        className="focus-ring h-8 w-14 rounded-control border border-edge px-2 text-center text-meta text-ink disabled:bg-surface-sunken disabled:text-ink-faint"
       />
 
-      <button
-        type="button"
-        className={BUTTON}
+      <Button
+        size="icon"
         disabled={disabled || atMax}
         onClick={() => onChange(quantity + 1)}
         aria-label={`Increase quantity of ${label}`}
       >
-        +
-      </button>
+        <PlusIcon />
+      </Button>
     </div>
   );
 }

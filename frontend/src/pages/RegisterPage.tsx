@@ -40,7 +40,7 @@ export function RegisterPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-slate-900 underline underline-offset-4">
+          <Link to="/login" className="font-medium text-ink underline underline-offset-4">
             Sign in
           </Link>
         </>

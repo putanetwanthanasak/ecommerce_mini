@@ -1,10 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { catalogKeys, fetchCategories } from "./catalogApi";
 
-const PILL =
-  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-slate-300";
-const SELECTED = "border-slate-900 bg-slate-900 text-white";
-const UNSELECTED = "border-slate-300 bg-white text-slate-700 hover:bg-slate-100";
+/*
+ * A hairline tab strip, not a row of capsules.
+ *
+ * The pills were `rounded-full` and, alongside the old stock capsules, were the
+ * loudest shapes in the first viewport — generic chip vocabulary belonging to no part
+ * of a board. A board's own wayfinding is a rail: labels sitting on a hairline, the
+ * active one marked by a rule rather than a filled lozenge.
+ *
+ * The active tab is marked in ink, never amber. Amber is reserved for a figure that
+ * can still change, and spending it on navigation would strip the one signal the
+ * board exists to send.
+ */
+const TAB =
+  "focus-ring condensed -mb-px inline-flex items-baseline gap-1.5 border-b-2 px-1 pb-2 text-meta font-semibold tracking-[0.04em] transition";
+const SELECTED = "border-ink text-ink";
+const UNSELECTED = "border-transparent text-ink-subtle hover:border-edge hover:text-ink-muted";
 
 interface CategoryFilterProps {
   /** Empty string = "All". */
@@ -26,7 +38,7 @@ export function CategoryFilter({ selectedId, onSelect }: CategoryFilterProps) {
     return (
       <div className="flex flex-wrap gap-2" aria-hidden="true">
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-8 w-24 animate-pulse rounded-full bg-slate-100" />
+          <div key={i} className="h-6 w-24 animate-pulse rounded bg-skeleton" />
         ))}
       </div>
     );
@@ -38,12 +50,12 @@ export function CategoryFilter({ selectedId, onSelect }: CategoryFilterProps) {
   // needs a way out of it.
   if (query.isError) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-meta text-ink-subtle">
         Categories couldn&apos;t be loaded.{" "}
         <button
           type="button"
           onClick={() => void query.refetch()}
-          className="font-medium text-slate-900 underline underline-offset-4"
+          className="font-medium text-ink underline underline-offset-4"
         >
           Retry
         </button>
@@ -55,15 +67,15 @@ export function CategoryFilter({ selectedId, onSelect }: CategoryFilterProps) {
   const totalProducts = categories.reduce((sum, c) => sum + c._count.products, 0);
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <CategoryPill
+    <div className="flex flex-wrap items-end gap-x-5 gap-y-2 border-b border-hairline">
+      <CategoryTab
         label="All"
         count={totalProducts}
         selected={selectedId === ""}
         onClick={() => onSelect("")}
       />
       {categories.map((category) => (
-        <CategoryPill
+        <CategoryTab
           key={category.id}
           label={category.name}
           count={category._count.products}
@@ -75,7 +87,7 @@ export function CategoryFilter({ selectedId, onSelect }: CategoryFilterProps) {
   );
 }
 
-function CategoryPill({
+function CategoryTab({
   label,
   count,
   selected,
@@ -91,10 +103,11 @@ function CategoryPill({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`${PILL} ${selected ? SELECTED : UNSELECTED}`}
+      className={`${TAB} ${selected ? SELECTED : UNSELECTED}`}
     >
       {label}
-      <span className={selected ? "text-slate-300" : "text-slate-400"}>{count}</span>
+      {/* The count is a figure, so it is set as one. */}
+      <span className="figures text-rail opacity-70">{count}</span>
     </button>
   );
 }

@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
+import { ArrowLeftIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { catalogKeys, fetchProduct } from "../catalog/catalogApi";
-import { StockBadge } from "../catalog/StockBadge";
+import { StockCell } from "../catalog/StockCell";
 import { ApiError } from "../lib/api";
 import { formatPrice } from "../lib/money";
-
-const ACTION_BUTTON =
-  "inline-block rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300";
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +35,7 @@ export function ProductDetailPage() {
             title="Product not found"
             message="This product may have been removed since the link was created."
             action={
-              <Link to="/products" className={ACTION_BUTTON}>
+              <Link to="/products" className={buttonClass()}>
                 Browse the catalog
               </Link>
             }
@@ -56,58 +55,81 @@ export function ProductDetailPage() {
     const product = query.data;
 
     return (
-      <article className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <article className="surface p-6 sm:p-8">
+        {/*
+          The name leads. The category used to sit above it as an eyebrow — a label
+          doing the heading's job — and now follows it as what it is: a link back
+          into a filtered board.
+        */}
+        <h1 className="condensed text-title font-bold tracking-tight text-ink">{product.name}</h1>
+
         <Link
           to={`/products?categoryId=${product.categoryId}`}
-          className="text-xs font-medium tracking-wide text-slate-400 uppercase transition hover:text-slate-600"
+          className="focus-ring rail mt-2 inline-block rounded-control transition hover:text-amber"
         >
           {product.category.name}
         </Link>
 
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{product.name}</h1>
+        {/*
+          The two facts, at the scale they deserve, each saying what guarantees it.
+          A bare "$38.00" asks to be trusted; "$38.00 / confirmed by the server when
+          you order" earns it — and both claims are true here, because the order
+          transaction reads the price off its own row and folds the stock check into
+          the write.
+        */}
+        <div className="mt-8 flex flex-wrap items-end gap-x-10 gap-y-6 border-t border-hairline pt-8">
+          <div>
+            <p className="figures text-display text-ink">{formatPrice(product.price)}</p>
+            <p className="rail mt-2">Confirmed by the server when you order</p>
+          </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span className="text-3xl font-semibold text-slate-900">
-            {formatPrice(product.price)}
-          </span>
-          <StockBadge stock={product.stock} />
+          <div>
+            <StockCell stock={product.stock} />
+            <p className="rail mt-2">
+              {product.stock > 0
+                ? "Reserved the moment your order is placed"
+                : "Nothing left to reserve"}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-6 border-t border-slate-200 pt-6">
-          <h2 className="text-xs font-medium tracking-wide text-slate-500 uppercase">
-            Description
-          </h2>
-          {product.description ? (
-            // whitespace-pre-line keeps any line breaks an admin typed in.
-            <p className="mt-2 text-sm whitespace-pre-line text-slate-700">{product.description}</p>
-          ) : (
-            <p className="mt-2 text-sm text-slate-400 italic">No description provided.</p>
-          )}
-        </div>
-
-        <dl className="mt-6 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
-          <div className="bg-white p-5">
-            <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">
-              Units in stock
-            </dt>
-            <dd className="mt-1.5 text-sm font-medium text-slate-900">{product.stock}</dd>
-          </div>
-          <div className="bg-white p-5">
-            <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">
-              Product ID
-            </dt>
-            <dd className="mt-1.5 font-mono text-xs break-all text-slate-600">{product.id}</dd>
-          </div>
-        </dl>
-
-        <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
-          {/* Same control as the grid card, so a click means the same thing on
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          {/* Same control as the board row, so a click means the same thing on
               both screens: one more unit. Quantity is edited in the cart. */}
           <AddToCartButton product={product} />
-          <Link to="/cart" className="text-sm text-slate-600 underline-offset-4 hover:underline">
+          <Link
+            to="/cart"
+            className="focus-ring rounded-control text-meta text-ink-muted underline-offset-4 hover:text-ink hover:underline"
+          >
             View cart
           </Link>
         </div>
+
+        <div className="mt-8 border-t border-hairline pt-8">
+          <h2 className="rail">Description</h2>
+          {product.description ? (
+            // whitespace-pre-line keeps any line breaks an admin typed in.
+            // max-w caps the measure at roughly 68 characters; without it a
+            // description runs the full container width and stops being readable.
+            <p className="mt-3 max-w-[68ch] text-body whitespace-pre-line text-ink-muted">
+              {product.description}
+            </p>
+          ) : (
+            <p className="mt-3 text-body text-ink-faint italic">No description provided.</p>
+          )}
+        </div>
+
+        {/*
+          The spec table, demoted below the action it used to compete with. Same
+          content as before — nothing removed — but it no longer sits between the
+          price and the buy control.
+        */}
+        <dl className="hairline-grid mt-8">
+          <div className="bg-surface p-5">
+            <dt className="rail">Product ID</dt>
+            <dd className="mt-2 font-mono text-rail break-all text-ink-muted">{product.id}</dd>
+          </div>
+        </dl>
       </article>
     );
   }
@@ -118,8 +140,8 @@ export function ProductDetailPage() {
           404, loaded — has the same way back to the catalog. Plain Link rather
           than history.back(): arriving from a shared URL has nothing to go back
           to, and the filters live in the catalog URL anyway. */}
-      <Link to="/products" className="text-sm text-slate-500 hover:text-slate-900">
-        ← Back to products
+      <Link to="/products" className="focus-ring inline-flex items-center gap-1.5 rounded-control text-meta text-ink-subtle transition hover:text-ink">
+        <ArrowLeftIcon /> Back to products
       </Link>
 
       <div className="mt-6">{renderProduct()}</div>
@@ -130,19 +152,19 @@ export function ProductDetailPage() {
 function ProductDetailSkeleton() {
   return (
     <div
-      className="animate-pulse rounded-xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="animate-pulse surface p-6 sm:p-8"
       role="status"
       aria-live="polite"
     >
       <span className="sr-only">Loading product</span>
-      <div className="h-3 w-24 rounded bg-slate-100" />
-      <div className="mt-3 h-7 w-2/3 rounded bg-slate-100" />
-      <div className="mt-5 h-9 w-32 rounded bg-slate-100" />
-      <div className="mt-6 border-t border-slate-200 pt-6">
-        <div className="h-4 w-full rounded bg-slate-100" />
-        <div className="mt-2 h-4 w-4/5 rounded bg-slate-100" />
+      <div className="h-3 w-24 rounded bg-skeleton" />
+      <div className="mt-3 h-7 w-2/3 rounded bg-skeleton" />
+      <div className="mt-5 h-9 w-32 rounded bg-skeleton" />
+      <div className="mt-6 border-t border-hairline pt-6">
+        <div className="h-4 w-full rounded bg-skeleton" />
+        <div className="mt-2 h-4 w-4/5 rounded bg-skeleton" />
       </div>
-      <div className="mt-6 h-24 rounded-xl bg-slate-100" />
+      <div className="mt-6 h-24 rounded-panel bg-skeleton" />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { buttonClass } from "../components/buttonStyles";
 import { useCart } from "./cartContext";
 
 /**
@@ -13,7 +14,7 @@ export function CartBadge() {
   return (
     <Link
       to="/cart"
-      className="relative rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300"
+      className={buttonClass({ size: "sm", className: "relative" })}
       aria-label={`Cart, ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
     >
       Cart
@@ -22,7 +23,7 @@ export function CartBadge() {
           // aria-hidden because the count is already in the link's label above;
           // a screen reader would otherwise read the number twice.
           aria-hidden="true"
-          className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 py-0.5 text-xs font-semibold text-white"
+          className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-ink px-1.5 py-0.5 text-rail font-semibold text-board"
         >
           {itemCount}
         </span>

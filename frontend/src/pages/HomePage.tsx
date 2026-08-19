@@ -18,33 +18,33 @@ export function HomePage() {
 
   return (
     <AppLayout>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{user.name}</h1>
-      <p className="mt-1.5 text-sm text-slate-500">{user.email}</p>
+      <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">{user.name}</h1>
+      <p className="mt-1.5 text-meta text-ink-subtle">{user.email}</p>
 
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
-        <div className="bg-white p-5">
-          <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">Role</dt>
+      <dl className="mt-8 hairline-grid sm:grid-cols-2">
+        <div className="bg-surface p-5">
+          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Role</dt>
           <dd className="mt-1.5 flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-900">{role}</span>
+            <span className="text-meta font-medium text-ink">{role}</span>
             {isAdmin && (
-              <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-medium text-white">
+              <span className="rounded-full bg-ink px-2 py-0.5 text-rail font-medium text-board">
                 Admin
               </span>
             )}
           </dd>
         </div>
-        <div className="bg-white p-5">
-          <dt className="text-xs font-medium tracking-wide text-slate-500 uppercase">User ID</dt>
-          <dd className="mt-1.5 font-mono text-xs break-all text-slate-600">{user.id}</dd>
+        <div className="bg-surface p-5">
+          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">User ID</dt>
+          <dd className="mt-1.5 font-mono text-rail break-all text-ink-muted">{user.id}</dd>
         </div>
       </dl>
 
-      <p className="mt-8 text-sm text-slate-500">
-        <Link to="/products" className="font-medium text-slate-900 underline underline-offset-4">
+      <p className="mt-8 text-meta text-ink-subtle">
+        <Link to="/products" className="font-medium text-ink underline underline-offset-4">
           Browse the catalog
         </Link>
         {" or review "}
-        <Link to="/orders" className="font-medium text-slate-900 underline underline-offset-4">
+        <Link to="/orders" className="font-medium text-ink underline underline-offset-4">
           your orders
         </Link>
         {isAdmin && " — admin tools (product and order management) land in a later phase."}

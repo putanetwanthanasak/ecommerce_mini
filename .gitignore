@@ -31,5 +31,35 @@ Thumbs.db
 # Claude Code local settings
 .claude/
 
+# Impeccable (design tooling) — installed per-developer, not part of the project.
+#
+# Unlike the patterns above, these contain a slash, which anchors them to this
+# file's directory (the repo root). That is deliberate: it is exactly where the
+# tool installs, and anchoring keeps them from matching anything a workspace
+# might legitimately name the same way.
+#
+# The .github/ copies are NOT read by GitHub Actions — only workflows/ is. They
+# are the GitHub Copilot install: Copilot reads repo-level hooks from
+# .github/hooks/*.json, so committing that manifest would fire the design hook
+# on every edit for anyone who clones this and uses Copilot, without them ever
+# opting in. The consent that gates it is per-developer and local. The 3.5 MB
+# skills/ tree it depends on is also a second copy that has already drifted from
+# the .claude/ one actually in use here.
+.github/agents/
+.github/hooks/
+.github/skills/
+
+# Generated review output. Screenshots stay out: ~0.5 MB a pass, regenerated
+# every run, and worthless the moment the code moves.
+#
+# .impeccable/critique/ IS tracked — the reports are small text and they record
+# why the UI was rebuilt, which the diff alone does not show. They are dated
+# snapshots, so read critique/README.md before treating any of them as current.
+# .impeccable/design.json is tracked too: it is the token source the UI is built
+# against, so the design system stays reproducible from the repo.
+.impeccable/review/
+.impeccable/questions/
+.impeccable/config.local.json
+
 
 CODE_GUIDE.MD
