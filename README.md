@@ -132,6 +132,17 @@ What was verified against the pooler, rather than assumed:
   the dev watcher and it skips type checking entirely.
 - **Health check:** `/health`.
 
+> **`preDeployCommand` is a paid-plan feature on Render.** On the free tier it
+> will not run, so migrations are not applied automatically. Do not move it into
+> `buildCommand` to work around that — see the reasoning above. Instead apply
+> them deliberately from a trusted machine, against the **session-mode** URL:
+>
+> ```bash
+> cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy
+> ```
+>
+> Still `migrate deploy`, never `migrate dev`.
+
 Set these four in the Render dashboard (the rest come from `render.yaml`):
 
 | Variable | Value |

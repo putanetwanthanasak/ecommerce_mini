@@ -42,6 +42,17 @@ services:
     # (DIRECT_URL), because Prisma Migrate needs a session-level advisory lock
     # that Supabase's transaction-mode pooler cannot hold — against port 6543 it
     # hangs indefinitely rather than failing. See README "Deployment".
+    #
+    # NOTE: preDeployCommand is a PAID-plan feature on Render. On `plan: free`
+    # it is ignored or rejected, so migrations will NOT run automatically. Do
+    # not "fix" that by moving it into buildCommand — a build can run on a
+    # branch, concurrently, or be retried, none of which are moments to apply
+    # DDL to a live database. On the free tier, apply migrations deliberately
+    # from a trusted machine instead, pointing at the SESSION-mode URL:
+    #
+    #     cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy
+    #
+    # (still `migrate deploy`, never `migrate dev`.)
     preDeployCommand: npx prisma migrate deploy
 
     # The compiled output. Never ts-node-dev: that is the dev-only watcher, it
