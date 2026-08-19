@@ -268,6 +268,8 @@ Backend on Render, frontend on Vercel, database on the existing Supabase instanc
 
 Runtime uses TRANSACTION mode (port 6543, `?pgbouncer=true`). Migrations must NOT: Prisma Migrate takes a session-level advisory lock that transaction pooling cannot hold, and it does not error — `prisma migrate deploy` against 6543 HANGS INDEFINITELY (measured: five minutes, no output). A release command pointed at the pooled URL hangs every deploy. That is what `directUrl` in schema.prisma exists for — migrations go through SESSION mode (port 5432) via `DIRECT_URL`.
 
+There is no automated release step: `preDeployCommand` fails blueprint validation on Render's free tier ("pre-deploy command is not supported for free tier services"), so `render.yaml` has none and migrations are applied by hand before deploying — `cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy`. Do not fold that into `buildCommand` to automate it: builds run on branches, can run concurrently, and are retried, so DDL there can hit a live database at a moment nobody chose, possibly twice at once.
+
 Verified through the transaction-mode pooler rather than assumed: all 21 tests pass including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
 
 2. DIRECT_URL is required once declared
