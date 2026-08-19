@@ -276,11 +276,19 @@ Verified through the transaction-mode pooler rather than assumed: all 21 tests p
 
 Prisma fails with `P1012 Environment variable not found` if `DIRECT_URL` is missing — there is no fallback to `url`. So backend/.env, .env.example and the CI backend job all define it. Locally and in CI it is simply the same value as `DATABASE_URL` (both are direct connections); only production needs the two to differ. Do not "simplify" this by deleting `directUrl` — that silently puts migrations back on the pooler.
 
-3. A green frontend build proves nothing about whether the app shipped
+3. The Render build needs `npm ci --include=dev`, and the error blames the wrong thing
+
+Render injects env vars into the BUILD as well as the runtime, and npm reads `NODE_ENV=production` as "omit devDependencies" — so a plain `npm ci` installs no TypeScript and no `@types/*` in a TypeScript project. The build fails with `TS7016: Could not find a declaration file for module 'cors'` and `TS2580: Cannot find name 'process'`, which read as missing dependencies rather than a missing install flag. Reproduced from a clean checkout: exit 2 without the flag, exit 0 with it.
+
+It misleads twice, because the breakage is partial: `typescript` and `prisma` survive a production install anyway, since `@prisma/client` depends on both. Only the `@types/*` go missing. Don't rely on that — it is Prisma's dependency tree, not a guarantee.
+
+Do NOT fix it by moving `@types/*` into `dependencies` (build-only packages in the runtime dependency list, forever), and note that setting NODE_ENV only at runtime is not really on offer: Render has no build-vs-runtime scoping for envVars, so it would mean inlining NODE_ENV into startCommand, where it is invisible in the dashboard and easy to lose — and `src/lib/prisma.ts` branches on it.
+
+4. A green frontend build proves nothing about whether the app shipped
 
 Already recorded as frontend invariant 3 and the CI note, but the magnitude is worth having: `lib/api.ts` throws at module load when `VITE_API_URL` is unset, that throw is top-level, so the bundler eliminates the whole app and STILL EXITS 0. Measured — without it the bundle is 224 KB and contains no "Sign in"; with it, 316 KB and the app is present. The broken bundle is not empty, it is 224 KB of React, so size alone does not catch it. Assert on content: `grep -c "Sign in" dist/assets/*.js`.
 
-4. CORS is configuration, and no-Origin requests must stay allowed
+5. CORS is configuration, and no-Origin requests must stay allowed
 
 `src/lib/corsOptions.ts` reads `CORS_ORIGINS` (comma-separated); bare `cors()` reflected any origin, which is wrong on the public internet. Requests with NO `Origin` header are always allowed — curl, Render's health check, Supertest — because CORS is browser-enforced, so refusing them breaks tooling and stops no attacker. A disallowed origin gets no CORS headers rather than an error: returning a 500 would make a blocked origin look like a broken API. Unset falls back to localhost:5173, so an unconfigured production deploy fails closed.
 
