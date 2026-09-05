@@ -1,0 +1,94 @@
+# Keep-alive ping for the Render backend and the Supabase database behind it.
+#
+# WHY THIS EXISTS
+#   - Supabase free tier PAUSES a project after 7 days with no database
+#     activity. A paused project has to be restored by hand from the dashboard.
+#   - Render's free web service also spins down after ~15 minutes idle and then
+#     takes 30-50s to answer the next request.
+#   A portfolio backend nobody touches for a week comes back paused. This
+#   workflow makes one request every 3 days so neither timer runs out.
+#
+# CHOOSING THE URL  (repository variable KEEPALIVE_URL)
+#   Set it under: Settings -> Secrets and variables -> Actions -> Variables.
+#
+#   To keep SUPABASE awake the request MUST reach the database. The backend's
+#   /health route is `res.json({ status: "ok" })` with NO query (see
+#   backend/src/app.ts), so pinging it keeps only Render warm, not Supabase.
+#   Point KEEPALIVE_URL at an endpoint that runs a query, e.g.
+#
+#       https://<your-service>.onrender.com/api/products?limit=1
+#
+#   which returns 200 and executes a Prisma findMany + count. Use /health only
+#   if all you care about is Render not sleeping.
+#
+# CAVEATS (GitHub Actions scheduling)
+#   - Scheduled workflows run ONLY from the default branch, so this does nothing
+#     until it is merged to main.
+#   - GitHub disables scheduled workflows after 60 days with no repo activity.
+#     If the repo goes quiet, this stops too -- and so does the keep-alive.
+#   - schedule times are best-effort and can be delayed 15-30+ min or skipped
+#     entirely under load. A 3-day cadence has ample slack against a 7-day
+#     pause; tighten the cron to daily if you want zero reliance on any single
+#     run landing.
+#   - A failed run emails the repo owner when Actions notifications are on
+#     (Settings -> Notifications -> Actions) -- that is the "tell me when it
+#     breaks" signal asked for.
+
+name: keep-alive
+
+on:
+  schedule:
+    # 06:00 UTC on days 1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31 -- i.e. every
+    # 3 days. The day counter resets each month, so the largest real gap is
+    # ~3 days at a month boundary, still well inside the 7-day pause window.
+    - cron: "0 6 */3 * *"
+  # Lets you trigger a run by hand from the Actions tab to test the setup.
+  workflow_dispatch: {}
+
+# Read-only: this workflow never touches the repo contents.
+permissions:
+  contents: read
+
+# Never let a manual run and a scheduled run overlap.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ping the backend and require HTTP 200
+        run: |
+          set -u
+          URL="${{ vars.KEEPALIVE_URL }}"
+          if [ -z "$URL" ]; then
+            echo "::error::Repository variable KEEPALIVE_URL is not set. Add it under Settings -> Secrets and variables -> Actions -> Variables (e.g. https://<service>.onrender.com/api/products?limit=1)."
+            exit 1
+          fi
+
+          echo "Pinging: $URL"
+
+          # Render free tier cold-starts in ~30-50s, so give the first hit room
+          # and retry transient failures (connection reset, 502/503 while the
+          # container wakes) before calling it broken. On total failure curl
+          # still writes "000" to http_code, which fails the check below.
+          http_code=$(curl --silent --show-error \
+            --connect-timeout 15 --max-time 90 \
+            --retry 4 --retry-delay 20 --retry-all-errors \
+            --output response.txt --write-out '%{http_code}' \
+            "$URL") || true
+
+          echo "HTTP status: ${http_code:-<none>}"
+          echo "----- response body (first 500 bytes) -----"
+          head -c 500 response.txt 2>/dev/null || true
+          echo
+          echo "-------------------------------------------"
+
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Keep-alive ping to $URL returned '${http_code:-<none>}', expected 200. The backend or its database may be down, asleep past the retry window, or misconfigured."
+            exit 1
+          fi
+
+          echo "Keep-alive OK."
