@@ -19,17 +19,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       {/*
-        The board's header rail. Darker than the flaps below it rather than lighter, so it
-        reads as the chassis the mechanism is mounted in, and it carries the one hairline
-        that separates the board's frame from its rows.
+        The header sits on the page's own background, not a raised bar — it is set
+        off from the content below by a single hairline border, nothing more.
       */}
       <header className="border-b border-hairline bg-board">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">
           {/*
-            The wordmark was 12px in the third-lightest grey available — quieter than every
-            badge on the page, in a slot designed to be invisible. On a departures board the
-            operator's name is set in the same condensed caps as the destinations, at a size
-            that admits it owns the board.
+            The wordmark used to be 12px in the third-lightest grey available — quieter
+            than every badge on the page, in a slot designed to be invisible. It is set
+            at row size now, in tracked caps, so it reads as the brand rather than a
+            forgotten label.
           */}
           <Link
             to="/products"

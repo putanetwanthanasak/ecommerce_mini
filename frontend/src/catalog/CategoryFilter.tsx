@@ -2,16 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { catalogKeys, fetchCategories } from "./catalogApi";
 
 /*
- * A hairline tab strip, not a row of capsules.
+ * A hairline tab strip, not a row of filled pills.
  *
- * The pills were `rounded-full` and, alongside the old stock capsules, were the
- * loudest shapes in the first viewport — generic chip vocabulary belonging to no part
- * of a board. A board's own wayfinding is a rail: labels sitting on a hairline, the
- * active one marked by a rule rather than a filled lozenge.
- *
- * The active tab is marked in ink, never amber. Amber is reserved for a figure that
- * can still change, and spending it on navigation would strip the one signal the
- * board exists to send.
+ * Category navigation sits on one underline: each label rests on the hairline, and
+ * the active tab is marked by a heavier rule beneath it in ink — not a filled
+ * background, and not the purple accent. Keeping it to a plain rule leaves the
+ * filter quiet next to the product rows it controls.
  */
 const TAB =
   "focus-ring condensed -mb-px inline-flex items-baseline gap-1.5 border-b-2 px-1 pb-2 text-meta font-semibold tracking-[0.04em] transition";

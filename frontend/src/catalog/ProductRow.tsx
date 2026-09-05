@@ -5,22 +5,21 @@ import type { Product } from "./catalogApi";
 import { StockCell } from "./StockCell";
 
 /*
- * One flap on the board.
+ * One product per row.
  *
- * WHY A ROW AND NOT A CARD. This was a three-across card grid, and the grid was
- * the thing standing between the design and its own argument: prices in separate
- * columns cannot be compared. A board is rows precisely so that every figure
- * lands in one column, on one baseline, and your eye can run down it. With no
- * product photography and no column to hold any, that comparison IS the
- * shopping experience — there is nothing else to look at.
+ * WHY A ROW AND NOT A CARD. This was a three-across card grid, and the grid stood
+ * between the design and its own argument: prices in separate columns cannot be
+ * compared. Rows put every price in one column, on one baseline, so the eye can
+ * run down them. With no product photography, that comparison is the shopping
+ * experience — there is nothing else to look at.
  *
  * The card also had to be tall enough for an image that never came, which is why
  * it looked unfinished. A row admits there is no picture and gets denser instead.
  *
- * The whole tile stays clickable via a stretched pseudo-element on the title
- * link, rather than wrapping everything in an <a>: a <button> inside an <a> is
- * invalid HTML and browsers disagree about which one wins the click. The add
- * control sits above that overlay on its own stacking context.
+ * The whole row stays clickable via a stretched pseudo-element on the title link,
+ * rather than wrapping everything in an <a>: a <button> inside an <a> is invalid
+ * HTML and browsers disagree about which one wins the click. The add control sits
+ * above that overlay on its own stacking context.
  */
 export function ProductRow({ product }: { product: Product }) {
   const soldOut = product.stock <= 0;
@@ -28,8 +27,8 @@ export function ProductRow({ product }: { product: Product }) {
   return (
     <li
       /*
-       * A sold-out flap drops to the board's own colour — the row has fallen
-       * blank, which is what a departures board does when a service is gone.
+       * A sold-out row drops to the page background, so it recedes from the
+       * still-available rows around it without needing a label to say so.
        *
        * The column template is what aligns the figures: name takes the slack,
        * stock and price get fixed columns, the action sits last. Below `sm` it
@@ -53,7 +52,7 @@ export function ProductRow({ product }: { product: Product }) {
         {/*
           The category was an eyebrow above the name. It sits under it now: a tag
           on the item rather than a title for it, and it no longer pushes the two
-          facts that matter down the flap.
+          facts that matter down the row.
         */}
         <p className="rail mt-1">{product.category.name}</p>
 
@@ -80,10 +79,10 @@ export function ProductRow({ product }: { product: Product }) {
 }
 
 /**
- * A flap that has not been printed yet.
+ * A row whose content has not loaded yet.
  *
  * Same box model and column template as a real row, so the switch from loading
- * to loaded doesn't reflow the board or bounce the pagination down the page.
+ * to loaded doesn't reflow the list or bounce the pagination down the page.
  */
 export function ProductRowSkeleton() {
   return (

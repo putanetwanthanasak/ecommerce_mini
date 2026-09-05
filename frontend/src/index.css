@@ -1,107 +1,113 @@
 @import "tailwindcss";
 
 /*
- * Archivo, self-hosted, with BOTH variable axes: weight 100-900 and width 62-125.
+ * Inter for body copy, Plus Jakarta Sans for display — both self-hosted as variable
+ * fonts via @fontsource, so text paints immediately in the fallback and never blocks
+ * (`font-display: swap` ships with the packages).
  *
- * One 90KB latin file replaces what would otherwise be several static cuts, and the
- * width axis is what lets this design put condensed board lettering next to normal-width
- * body copy without a second family. `font-display: swap` ships with the package, so text
- * paints in the fallback immediately and never blocks.
- *
- * Chosen for its signage lineage — Archivo is drawn from the American gothics used on
- * highway and transit boards, which is the same drawing tradition as a departures board's
- * flap lettering. The previous theme named "Inter" and never loaded it, so every machine
- * without Inter installed silently rendered Segoe UI: the one aesthetic decision in this
- * codebase had never actually shipped.
+ * Neither family has a width axis. The previous theme leaned on Archivo's width axis
+ * to set condensed lettering next to normal-width prose; here that hierarchy is carried
+ * by size, weight and letter-spacing instead — the `condensed`, `figures` and `rail`
+ * utilities below do it that way rather than by narrowing glyphs. Plus Jakarta Sans is
+ * the display face: a touch more geometric than Inter, used for names, prices and
+ * headings so they read as a distinct voice from the surrounding text.
  */
-@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 /*
- * THE DEPARTURES BOARD
+ * A LIGHT, WARM-NEUTRAL THEME WITH A PURPLE ACCENT
  *
- * A split-flap arrivals board exists to make a changing number trustworthy at a glance.
- * This store's stock counts are guaranteed by a transaction that cannot oversell, so the
- * board is the medium rather than a metaphor. See the direction contract in index.html.
+ * The canvas is a warm off-white; cards are pure white, lifted off the page by a soft
+ * shadow and a hairline border rather than by a shift in tone. Every neutral carries a
+ * faint warm hue (60–83) — there are no dead greys. Purple is the single accent colour,
+ * spent deliberately on interactive affordance (focus rings, the PAID state, text
+ * selection) and nothing decorative.
  *
- * WHY ONE POLARITY: everything is light-on-dark. Flaps are matte dark cards a shade above
- * the board, not white ones. That is a real Solari variant (Italian station boards) and it
- * is also what keeps this change honest: the semantic role names below are the same ones
- * every component already consumes, so the world lands by changing values, not by
- * rewriting twenty-seven files a second time.
+ * LIGHT MODE ONLY. There is no dark palette here and no `.dark` / prefers-color-scheme
+ * branch — this design was authored for one polarity, the same way the theme before it
+ * was authored dark-only. A dark rendition would be a separate, deliberate piece of
+ * work, not a media-query flip of these values.
  *
- * WHY DARK AT ALL: the scene forces it. A departures board is read in a concourse at dusk,
- * where the board is the only lit surface in view. A light rendition of this world would be
- * a different world wearing its layout.
+ * The role names below (surface, ink, hairline, amber, signal…) are the same ones every
+ * component already consumes, so the palette changes by editing values here, not by
+ * rewriting component files.
  */
 @theme {
-  --font-sans: "Archivo Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", var(--font-sans);
 
   /*
-   * The board itself, and the flaps on it. Three steps of dark, close together: the
-   * separation between a board and its flaps in life is shallow and matte, so a big
-   * jump here would read as stacked panels instead of one mechanism.
+   * The page and the cards on it. A card separates from the canvas by shadow and a
+   * hairline, not by tone, so the steps between these values are deliberately tiny.
    */
-  --color-board: oklch(21.5% 0.012 240); /* the enamelled board behind everything */
-  --color-surface-sunken: var(--color-board); /* page ground == the board */
-  --color-surface: oklch(26% 0.012 240); /* a flap */
-  --color-surface-muted: oklch(31% 0.013 240); /* flap hover, neutral badge fill */
-  --color-skeleton: oklch(31% 0.013 240); /* a flap not yet printed */
+  --color-board: oklch(98.2% 0.008 83); /* the warm off-white canvas behind everything */
+  --color-surface-sunken: var(--color-board); /* page ground == the canvas */
+  --color-surface: oklch(100% 0 0); /* a card */
+  --color-surface-muted: oklch(95.5% 0.012 83); /* card hover, neutral badge fill */
+  --color-skeleton: oklch(93% 0.012 83); /* a card whose content has not loaded */
 
-  --color-hairline: oklch(33% 0.012 240); /* the chassis gap between flaps */
-  --color-edge: oklch(42% 0.013 240); /* borders on things you can interact with */
+  --color-hairline: oklch(90% 0.01 83); /* border between cards and cells */
+  --color-edge: oklch(84% 0.014 83); /* borders on things you can interact with */
 
   /*
-   * Printed ink on a flap. Every value below is contrast-checked against the flap
+   * Text on a white card. Every value below is contrast-checked against the card
    * (--color-surface); ink-faint is the floor case because it carries placeholder text,
    * which has to clear 4.5:1 like any other text a person is expected to read.
    */
-  --color-ink: oklch(94% 0.004 240); /* 13:1 on a flap */
-  --color-ink-muted: oklch(80% 0.006 240); /* 8.4:1 */
-  --color-ink-subtle: oklch(68% 0.008 240); /* 5.8:1 */
-  --color-ink-faint: oklch(62% 0.009 240); /* 4.9:1 — the floor, not decoration */
+  --color-ink: oklch(24% 0.015 60); /* ~14:1 on a card */
+  --color-ink-muted: oklch(40% 0.014 62); /* ~8:1 */
+  --color-ink-subtle: oklch(48% 0.014 65); /* ~5.8:1 */
+  --color-ink-faint: oklch(53% 0.014 65); /* ~4.8:1 — the floor, not decoration */
 
   /*
-   * AMBER IS RESERVED. It marks a figure that can still change — a stock count, a PENDING
-   * order — and nothing else. The moment it decorates something static it stops carrying
-   * meaning, and the board loses the one signal it exists to send.
+   * AMBER marks a figure or a state that can still change or wants attention — a low
+   * stock count, a PENDING order — and is never used decoratively. It is pulled down
+   * from a bright signal amber to an ochre so it stays legible as text on a white card.
    */
-  --color-amber: oklch(80% 0.135 78);
-  --color-amber-surface: oklch(28% 0.045 78);
+  --color-amber: oklch(52% 0.13 70);
+  --color-amber-surface: oklch(94% 0.05 70);
 
-  /* Settled: in stock, paid, shipped. The flap has stopped turning. */
-  --color-signal: oklch(74% 0.105 155);
-  --color-signal-surface: oklch(27% 0.038 155);
+  /* Settled: in stock, paid, shipped. Nothing here is going to change. */
+  --color-signal: oklch(52% 0.12 155);
+  --color-signal-surface: oklch(95% 0.04 155);
 
-  /* Gone: sold out. A row fallen blank. */
-  --color-alert: oklch(70% 0.145 27);
-  --color-alert-surface: oklch(27% 0.055 27);
+  /* Gone: sold out, or an error. */
+  --color-alert: oklch(52% 0.2 27);
+  --color-alert-surface: oklch(95% 0.05 27);
 
   /*
-   * The status families the components already consume, pointed at the board's signals so
-   * there is exactly one definition of "amber" in the project. CANCELLED stays neutral by
-   * deliberate choice — a customer who cancelled their own order has not hit an error.
+   * The status families the components already consume, pointed at the palette's
+   * signals so there is exactly one definition of "amber" in the project. CANCELLED
+   * stays neutral by deliberate choice — a customer who cancelled their own order has
+   * not hit an error.
    */
   --color-critical: var(--color-alert);
-  --color-critical-edge: oklch(38% 0.09 27);
+  --color-critical-edge: oklch(85% 0.08 27);
   --color-critical-surface: var(--color-alert-surface);
 
   --color-caution: var(--color-amber);
-  --color-caution-edge: oklch(40% 0.075 78);
+  --color-caution-edge: oklch(85% 0.08 70);
   --color-caution-surface: var(--color-amber-surface);
 
   --color-positive: var(--color-signal);
-  --color-positive-edge: oklch(38% 0.065 155);
+  --color-positive-edge: oklch(85% 0.06 155);
   --color-positive-surface: var(--color-signal-surface);
 
-  --color-info: oklch(76% 0.075 235);
-  --color-info-edge: oklch(40% 0.055 235);
-  --color-info-surface: oklch(27% 0.032 235);
+  /*
+   * Info is the theme's purple accent. It carries the PAID order state and is the same
+   * hue as --color-focus. A dedicated --color-brand plus a primary-button treatment is
+   * a deliberate follow-up; for now the accent lives on this token.
+   */
+  --color-info: oklch(52% 0.17 300);
+  --color-info-edge: oklch(88% 0.05 300);
+  --color-info-surface: oklch(96% 0.025 300);
 
-  /* Amber, because focus is a state that is currently changing. */
-  --color-focus: var(--color-amber);
+  /* Purple, matching the accent — focus is an interactive affordance, not a warning. */
+  --color-focus: oklch(52% 0.17 300);
 
-  --radius-control: var(--radius-md);
-  --radius-panel: var(--radius-lg);
+  --radius-control: 0.625rem;
+  --radius-panel: 1rem;
 
   /*
    * TYPE ROLES.
@@ -110,10 +116,9 @@
    * name: Tailwind generates `text-<name>` from both namespaces, so a --text-board
    * beside a --color-board would collide on one utility.
    *
-   * Hierarchy here is carried by WIDTH as much as size. `figure` and `rail` run
-   * condensed; body runs normal. That is the board's own grammar — flap lettering is
-   * condensed because a flap is narrow — and it means a price can dominate a row without
-   * simply being enormous.
+   * With no width axis available, hierarchy is carried by size, weight and tracking.
+   * `rail` opens its letter-spacing right up and `figures` sets tight in the display
+   * face — see those utilities below — so both stay distinct from body copy.
    */
   --text-rail: 0.6875rem; /* column headers and field labels, tracked caps */
   --text-rail--line-height: 1.2;
@@ -121,7 +126,7 @@
   --text-meta--line-height: 1.45;
   --text-body: 1rem; /* the reading floor. descriptions, prose */
   --text-body--line-height: 1.6;
-  --text-row: 1.125rem; /* a product name on its flap */
+  --text-row: 1.125rem; /* a product name in a list row */
   --text-row--line-height: 1.25;
   --text-figure: 1.5rem; /* money in a list */
   --text-figure--line-height: 1.1;
@@ -132,11 +137,14 @@
 }
 
 /*
- * A panel — which in this world is a flap: one printed card on the board. Matte, no
- * shadow; depth comes from the chassis hairline between flaps, the way it does on the
- * real mechanism.
+ * A card: one white panel on the warm canvas. It separates from the page by a soft
+ * shadow plus a hairline border — the mockup this theme is drawn from relies on shadow
+ * rather than tone for that separation, so the shadow is part of the role, not an
+ * add-on. No hover lift on the utility itself: `surface` also wraps list containers and
+ * loading skeletons, and lifting those every time the pointer crosses a row would make
+ * the whole list twitch. Interactive rows keep their existing tone-change hover.
  *
- * Named `surface` rather than `flap` because that is the role name every component
+ * Named `surface` rather than `card` because that is the role name every component
  * already consumes, and a second utility with an identical body is the exact drift the
  * token pass existed to remove.
  */
@@ -144,12 +152,14 @@
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-panel);
   background-color: var(--color-surface);
+  box-shadow:
+    0 1px 3px 0 oklch(0% 0 0 / 0.06),
+    0 1px 2px -1px oklch(0% 0 0 / 0.08);
 }
 
 /*
  * The hairline grid: a definition list whose 1px gaps ARE the cell borders, drawn by
- * letting the container's background show through. On this board it reads as the chassis
- * showing between flaps, which is exactly right.
+ * letting the container's background show through as thin dividing lines.
  */
 @utility hairline-grid {
   display: grid;
@@ -161,36 +171,35 @@
 }
 
 /*
- * A rail: the tracked-caps label strip that runs above a set of rows. The board's own
- * wayfinding, and the reason the catalog needs no eyebrow above anything.
+ * A rail: the tracked-caps label strip that runs above a set of rows — column headers
+ * and field labels. The wide tracking and small caps size are what keep it distinct
+ * from body copy now that there is no condensed width to lean on.
  */
 @utility rail {
   font-size: var(--text-rail);
   line-height: 1.2;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  font-stretch: 88%;
   color: var(--color-ink-subtle);
 }
 
 /*
- * Money and counts. Tabular so figures align down a column and can be compared, and
- * condensed so a price can be large without crowding the name beside it.
- *
- * This is the "held level" rule: lettering on this board carries character through width
- * and tracking, but the numbers are machine-true and rigidly aligned.
+ * Money and counts. Tabular so figures line up down a column and can be compared, set
+ * in the display face with tight tracking so a price can carry weight in a row without
+ * simply being enormous. The numbers stay machine-true and rigidly aligned.
  */
 @utility figures {
+  font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
-  font-stretch: 80%;
   letter-spacing: -0.01em;
   font-weight: 700;
 }
 
-/* Condensed display lettering for names and headings. */
+/* Display lettering for names and headings — the Plus Jakarta Sans voice, set tight. */
 @utility condensed {
-  font-stretch: 82%;
+  font-family: var(--font-display);
+  letter-spacing: -0.005em;
 }
 
 @utility focus-ring {
@@ -203,52 +212,46 @@
 }
 
 /*
- * A printed cell, not a capsule. `rounded-full` pills were the loudest shapes on the
- * board and belonged to no part of this world — they are the generic chip vocabulary
- * the old look had, and the world is rows, rails and printed cells.
+ * A small status pill. `rounded-full` to match the chip vocabulary of the catalog this
+ * theme is drawn from — the stock and order-status badges all read as capsules there.
  */
 @utility badge {
-  @apply inline-flex shrink-0 items-center rounded-control border border-transparent px-2 py-0.5 font-medium;
+  @apply inline-flex shrink-0 items-center rounded-full border border-transparent px-2.5 py-1 font-medium;
   font-size: var(--text-rail);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 /*
- * THE TURN — the board's one authored moment.
+ * A brief settle when a figure changes value between renders. Subtle by design — a
+ * quick fade-up, nothing mechanical — because the stock count is the one number on the
+ * page that updates in place, and the change should register without demanding
+ * attention. The prefers-reduced-motion block below collapses it to nothing.
  *
- * A flap rotating over on its axle. It starts and ends fully visible, so a figure
- * never disappears while it changes: the movement is the information, not a fade.
- * The ease is a strong exponential out, which is what makes a mechanical part read as
- * having mass and settling rather than gliding.
- *
- * Spent on exactly one element — the stock figure in StockCell — because it is the
- * only number on this surface that is allowed to move.
+ * Spent on exactly one element — the stock figure in StockCell.
  */
-@keyframes flap-turn {
-  0% {
-    transform: perspective(240px) rotateX(0deg);
+@keyframes figure-update {
+  from {
+    opacity: 0.4;
+    transform: translateY(-2px);
   }
-  45% {
-    transform: perspective(240px) rotateX(-72deg);
-  }
-  100% {
-    transform: perspective(240px) rotateX(0deg);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@utility animate-flap-turn {
+@utility animate-figure-update {
   display: inline-block;
-  transform-origin: 50% 50%;
-  animation: flap-turn 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: figure-update 320ms ease-out;
 }
 
 html {
   /* Keeps the auth card from jumping horizontally when a page grows a scrollbar. */
   scrollbar-gutter: stable;
-  /* The board runs to the edges of the window, not just to the end of the content. */
+  /* The canvas runs to the edges of the window, not just to the end of the content. */
   background-color: var(--color-board);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -258,16 +261,18 @@ body {
 }
 
 /*
- * Browser surfaces. Selection, the caret and the scrollbar ship with defaults that belong
- * to no design system, and on a dark ground the stock versions are actively wrong.
+ * Browser surfaces. Selection, the caret and the scrollbar ship with defaults that
+ * belong to no design system, so they are pointed at the theme's own colours here:
+ * the accent purple for selection and caret — it is the colour this design uses to
+ * mark an interactive spot — and a hairline-weight scrollbar.
  */
 ::selection {
-  background-color: var(--color-amber);
-  color: var(--color-board);
+  background-color: var(--color-info);
+  color: var(--color-surface);
 }
 
 :where(input, textarea) {
-  caret-color: var(--color-amber);
+  caret-color: var(--color-info);
 }
 
 @supports (scrollbar-color: auto) {
@@ -279,8 +284,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   /*
    * The skeletons pulse and the grid cross-fades between pages. Both are information —
-   * "this is still loading" — so they are reduced rather than removed: the opacity change
-   * still lands, it just stops repeating.
+   * "this is still loading" — so they are reduced rather than removed: the opacity
+   * change still lands, it just stops repeating.
    */
   *,
   *::before,
