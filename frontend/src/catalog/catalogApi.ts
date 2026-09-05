@@ -16,6 +16,8 @@ export interface Product {
   id: string;
   name: string;
   description: string | null;
+  /** Absolute URL, or null. Not every product has one — render via <ProductImage>. */
+  imageUrl: string | null;
   /** A string, not a number — see lib/money.ts. Always render via formatPrice. */
   price: string;
   stock: number;

@@ -9,7 +9,7 @@
  * `×` between a price and a quantity is NOT here on purpose: that one is a real
  * multiplication sign doing typographic work, not an icon.
  *
- * All three inherit `currentColor` and size from the 1em box, so a control's colour
+ * They all inherit `currentColor` and size from the 1em box, so a control's colour
  * and scale carry into them without a prop.
  */
 
@@ -57,6 +57,17 @@ export function PlusIcon() {
     <Svg>
       <path d="M3.5 8h9" />
       <path d="M8 3.5v9" />
+    </Svg>
+  );
+}
+
+// Stand-in for a product with no image — a framed photo with a horizon and sun.
+export function ImageIcon() {
+  return (
+    <Svg>
+      <rect x="2" y="3" width="12" height="10" rx="1.5" />
+      <circle cx="5.75" cy="6.25" r="1.15" />
+      <path d="m2.5 11.5 3.25-3 2.25 2 2.75-2.75 2.75 2.75" />
     </Svg>
   );
 }

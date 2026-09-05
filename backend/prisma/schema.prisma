@@ -65,6 +65,10 @@ model Product {
   id          String      @id @default(uuid())
   name        String
   description String?
+  // Optional: existing products predate this field and render with a fallback.
+  // Stored as a bare URL string — there is no upload pipeline; it is set by the
+  // seed script or an admin PATCH. Validated as a URL at the route boundary.
+  imageUrl    String?
   price       Decimal     @db.Decimal(10, 2)
   stock       Int         @default(0)
   categoryId  String

@@ -16,16 +16,19 @@ const priceSchema = z
 const productSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().optional(),
+  // Optional, but a real URL when given — the frontend renders it in an <img>.
+  imageUrl: z.string().url("imageUrl must be a valid URL").optional(),
   price: priceSchema,
   stock: z.number().int("Stock must be a whole number").min(0, "Stock cannot be negative"),
   categoryId: z.string().uuid("categoryId must be a valid UUID"),
 });
 
 // Partial update — same rules, but every field optional.
-// description is nullable here so a client can explicitly clear it.
-const updateProductSchema = productSchema
-  .partial()
-  .extend({ description: z.string().nullable().optional() });
+// description and imageUrl are nullable here so a client can explicitly clear them.
+const updateProductSchema = productSchema.partial().extend({
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().url("imageUrl must be a valid URL").nullable().optional(),
+});
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().positive("page must be a positive integer").default(1),
