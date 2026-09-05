@@ -4,30 +4,24 @@ import { useEffect, useRef, useState } from "react";
 const LOW_STOCK_THRESHOLD = 5;
 
 /**
- * Stock, as a printed figure on the board.
+ * Stock, as a plain figure in the STOCK column.
  *
  * THIS WAS A BADGE AND IT WAS WRONG. The old version printed a *word* — "In stock" —
  * and only revealed the actual count below the low threshold. Since every seeded row
- * sits above that threshold, the board never printed a number and amber never
- * appeared on any surface in the app. That hollowed out the whole thesis: a
- * departures board exists to make a *changing number* trustworthy at a glance, and
- * this one was showing a binary word in a grey capsule.
+ * sits above that threshold, the number was never shown. But the count is the fact
+ * a shopper actually wants, so it is always printed, in tabular figures:
  *
- * So the count is always printed, in tabular figures, in the STOCK column:
- *
- *   settled   signal green. The flap has stopped turning.
- *   low       amber — the board's reserved colour for a figure that can still change.
+ *   settled   signal green. Nothing about it is going to change.
+ *   low       amber — the reserved colour for a figure that can still change.
  *   gone      struck through in alert red, and there is no figure to print.
  *
- * THE TURN. When the count changes between renders the figure flips once, the way a
- * flap does. It is the surface's single authored moment, deliberately spent here
- * rather than scattered across hovers, because this is the one number on the page
- * that is allowed to move. It starts and ends fully visible — the flip is rotation,
- * never a fade from nothing — and the global `prefers-reduced-motion` block already
- * collapses it to a static figure.
+ * When the count changes between renders the figure does a brief fade-up settle
+ * (`animate-figure-update`) — subtle, generic, just enough to register that the one
+ * number on the page that updates in place has moved. The global
+ * `prefers-reduced-motion` block collapses it to a static figure.
  */
 export function StockCell({ stock }: { stock: number }) {
-  const turning = useFigureTurn(stock);
+  const changed = useRecentlyChanged(stock);
 
   if (stock <= 0) {
     return (
@@ -49,7 +43,7 @@ export function StockCell({ stock }: { stock: number }) {
     >
       <span
         aria-hidden="true"
-        className={`figures text-row ${turning ? "animate-flap-turn" : ""}`}
+        className={`figures text-row ${changed ? "animate-figure-update" : ""}`}
       >
         {stock}
       </span>
@@ -62,19 +56,19 @@ export function StockCell({ stock }: { stock: number }) {
 
 /**
  * True for one animation's length after `value` changes — and never on first paint,
- * so a page load does not flip every figure on the board at once.
+ * so a page load does not animate every figure in the list at once.
  */
-function useFigureTurn(value: number): boolean {
+function useRecentlyChanged(value: number): boolean {
   const previous = useRef(value);
-  const [turning, setTurning] = useState(false);
+  const [changed, setChanged] = useState(false);
 
   useEffect(() => {
     if (previous.current === value) return;
     previous.current = value;
-    setTurning(true);
-    const timer = window.setTimeout(() => setTurning(false), 420);
+    setChanged(true);
+    const timer = window.setTimeout(() => setChanged(false), 340);
     return () => window.clearTimeout(timer);
   }, [value]);
 
-  return turning;
+  return changed;
 }

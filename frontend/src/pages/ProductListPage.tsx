@@ -12,7 +12,7 @@ import { ProductRow, ProductRowSkeleton } from "../catalog/ProductRow";
 import { useCatalogParams, DEFAULT_PAGE_SIZE } from "../catalog/useCatalogParams";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
-// Long enough that a typed word is one request, short enough that the grid
+// Long enough that a typed word is one request, short enough that the list
 // doesn't feel stuck after the user stops.
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -49,7 +49,7 @@ export function ProductListPage() {
     queryKey: catalogKeys.products(params),
     queryFn: () => fetchProducts(params),
     // Hold the previous page's results while the next one loads. Without this
-    // the grid empties on every page change and the whole layout jumps.
+    // the list empties on every page change and the whole layout jumps.
     placeholderData: keepPreviousData,
   });
 
@@ -68,10 +68,10 @@ export function ProductListPage() {
   }
 
   /*
-   * Three different situations render zero cards, and they need different
+   * Three different situations render zero rows, and they need different
    * words. Collapsing them into one "No products found" would tell a user with
    * an empty catalog to adjust filters they never set, and leave a user
-   * stranded past the last page with no idea why the grid went blank.
+   * stranded past the last page with no idea why the list went blank.
    */
   function renderEmpty() {
     if (pagination && pagination.total > 0) {
@@ -114,7 +114,7 @@ export function ProductListPage() {
 
   function renderResults() {
     if (query.isPending) {
-      return <BoardSkeleton count={Math.min(params.limit, DEFAULT_PAGE_SIZE)} />;
+      return <ListSkeleton count={Math.min(params.limit, DEFAULT_PAGE_SIZE)} />;
     }
 
     if (query.isError) {
@@ -132,10 +132,10 @@ export function ProductListPage() {
     return (
       <div className="space-y-6">
         {/*
-          The board: one flap per product, separated by the chassis hairline. The
-          column rail above it names what each column holds, which is what makes a
-          board readable without a single picture — and it only works because
-          every price now lands in one column.
+          One row per product, separated by hairline rules. The column header row
+          above names what each column holds — which is what makes the list
+          readable without a single product image — and it only works because
+          every price lands in one column.
         */}
         <div>
           <ColumnRail />
@@ -166,10 +166,10 @@ export function ProductListPage() {
   return (
     <AppLayout>
       {/*
-        The heading is set as a rail, not a display line. It used to be the largest
-        text on the page — a shopping surface whose loudest word was "Products",
-        which is the name of a database table. The figures on the board are the
-        largest type here now, because they are what the visitor came to read.
+        The heading is set small, as a label, not a display line. It used to be the
+        largest text on the page — the loudest word on a shopping page being
+        "Products", the name of a database table. The prices are the largest type
+        here now, because they are what the visitor came to read.
       */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">
@@ -216,7 +216,7 @@ export function ProductListPage() {
 }
 
 /**
- * The board's column rail.
+ * The list's column header row.
  *
  * Hidden below `sm`, where the rows collapse to a stack and column headers would
  * be labelling columns that no longer exist. `aria-hidden` because these are
@@ -239,7 +239,7 @@ function ColumnRail() {
   );
 }
 
-function BoardSkeleton({ count }: { count: number }) {
+function ListSkeleton({ count }: { count: number }) {
   return (
     <div role="status" aria-live="polite">
       <span className="sr-only">Loading products</span>

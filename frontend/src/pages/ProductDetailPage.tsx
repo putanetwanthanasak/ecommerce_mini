@@ -94,7 +94,7 @@ export function ProductDetailPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-4">
-          {/* Same control as the board row, so a click means the same thing on
+          {/* Same control as the catalog row, so a click means the same thing on
               both screens: one more unit. Quantity is edited in the cart. */}
           <AddToCartButton product={product} />
           <Link

@@ -1,5 +1,5 @@
 /**
- * The icon set: drawn paths at one stroke weight, in the board's own line language.
+ * The icon set: drawn paths at one stroke weight, tuned to the weight of the type.
  *
  * These replaced unicode glyphs standing in for icons — `←` in the back links and
  * `−` / `+` on the quantity stepper. A glyph borrows whatever the text face happens
