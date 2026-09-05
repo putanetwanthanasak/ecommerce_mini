@@ -11,26 +11,28 @@
  * Idempotent: re-running it just re-sets the same URLs, so `prisma migrate dev`
  * (which invokes this via the `prisma.seed` hook) can run it every time.
  *
- * THE URLS ARE PLACEHOLDERS. Lorem Picsum returns a real, stable JPEG per seed
- * slug — enough to see the catalogue and detail views render an <img> end to
- * end. Swap the `imageUrl` values below for real photographs (e.g.
- * https://images.unsplash.com/photo-<id>) and re-run `npm run seed`.
+ * THE URLS point at a public Supabase Storage bucket (`product-images`) on the
+ * dev project. They are real, hosted files — not a placeholder service — but
+ * there is still no upload pipeline: to change a product's image, replace the
+ * file in the bucket or point `imageUrl` somewhere else and re-run `npm run seed`.
  */
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const PLACEHOLDER_IMAGES: Array<{ name: string; imageUrl: string }> = [
-  { name: "Desk Lamp", imageUrl: "https://picsum.photos/seed/desk-lamp/600/600" },
-  { name: "Mechanical Keyboard", imageUrl: "https://picsum.photos/seed/mechanical-keyboard/600/600" },
-  { name: "Clean Code", imageUrl: "https://picsum.photos/seed/clean-code/600/600" },
-  { name: "The Pragmatic Programmer", imageUrl: "https://picsum.photos/seed/pragmatic-programmer/600/600" },
+const BUCKET = "https://vuxlcphlshsghqcxqwjr.supabase.co/storage/v1/object/public/product-images";
+
+const PRODUCT_IMAGES: Array<{ name: string; imageUrl: string }> = [
+  { name: "Desk Lamp", imageUrl: `${BUCKET}/Yellow_Lamp.png` },
+  { name: "Mechanical Keyboard", imageUrl: `${BUCKET}/mechanical_keyboard.jpg` },
+  { name: "Clean Code", imageUrl: `${BUCKET}/programming_book.jpg` },
+  { name: "The Pragmatic Programmer", imageUrl: `${BUCKET}/Bookimage.jpg` },
 ];
 
 async function main() {
   let updated = 0;
 
-  for (const { name, imageUrl } of PLACEHOLDER_IMAGES) {
+  for (const { name, imageUrl } of PRODUCT_IMAGES) {
     // updateMany, not update: no unique constraint on `name`, and a missing row
     // should be a skip (count 0), not a throw.
     const { count } = await prisma.product.updateMany({
