@@ -7,6 +7,7 @@ import { ArrowLeftIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { catalogKeys, fetchProduct } from "../catalog/catalogApi";
+import { ProductImage } from "../catalog/ProductImage";
 import { StockCell } from "../catalog/StockCell";
 import { ApiError } from "../lib/api";
 import { formatPrice } from "../lib/money";
@@ -56,10 +57,20 @@ export function ProductDetailPage() {
 
     return (
       <article className="surface p-6 sm:p-8">
+        {/* Detail view has room for a real image; the catalog row shows a
+            thumbnail of the same URL. Falls back to a neutral block when the
+            product has no imageUrl. */}
+        <ProductImage
+          src={product.imageUrl}
+          alt={product.name}
+          className="mb-6 aspect-[5/2] w-full rounded-panel"
+          fallbackIconClassName="text-4xl"
+        />
+
         {/*
           The name leads. The category used to sit above it as an eyebrow — a label
           doing the heading's job — and now follows it as what it is: a link back
-          into a filtered board.
+          into a filtered list.
         */}
         <h1 className="condensed text-title font-bold tracking-tight text-ink">{product.name}</h1>
 
@@ -157,7 +168,8 @@ function ProductDetailSkeleton() {
       aria-live="polite"
     >
       <span className="sr-only">Loading product</span>
-      <div className="h-3 w-24 rounded bg-skeleton" />
+      <div className="aspect-[5/2] w-full rounded-panel bg-skeleton" />
+      <div className="mt-6 h-3 w-24 rounded bg-skeleton" />
       <div className="mt-3 h-7 w-2/3 rounded bg-skeleton" />
       <div className="mt-5 h-9 w-32 rounded bg-skeleton" />
       <div className="mt-6 border-t border-hairline pt-6">

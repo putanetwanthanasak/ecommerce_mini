@@ -204,8 +204,9 @@ Understood tradeoffs, not oversights:
   `32.50` as `"32.5"`. That's Prisma's behaviour; one frontend module owns the formatting.
 - **No admin UI**, though the `ADMIN` role is real and API-enforced. Admins are promoted directly in
   the database; operators use Prisma Studio.
-- **No product images, and no schema column for them.** Adding photography means a migration and
-  somewhere to host files, not a CSS change.
+- **Product images are URL-only.** `Product.imageUrl` holds a URL (the demo products point at a
+  public Supabase Storage bucket); there is no upload pipeline, so an admin sets the URL directly.
+  The catalog and detail views fall back to a neutral block when it is absent.
 - **No payment step.** Checkout places an order; `PAID` is a status nothing sets from the UI.
 - **No status-transition rules beyond cancel.** `SHIPPED → PENDING` is currently legal.
 - **No frontend tests.** CI lints and type checks it; the cart and checkout logic was factored into

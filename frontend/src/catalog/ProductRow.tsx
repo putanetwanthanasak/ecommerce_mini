@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { formatPrice } from "../lib/money";
 import type { Product } from "./catalogApi";
+import { ProductImage } from "./ProductImage";
 import { StockCell } from "./StockCell";
 
 /*
@@ -10,11 +11,12 @@ import { StockCell } from "./StockCell";
  * WHY A ROW AND NOT A CARD. This was a three-across card grid, and the grid stood
  * between the design and its own argument: prices in separate columns cannot be
  * compared. Rows put every price in one column, on one baseline, so the eye can
- * run down them. With no product photography, that comparison is the shopping
- * experience — there is nothing else to look at.
+ * run down them.
  *
- * The card also had to be tall enough for an image that never came, which is why
- * it looked unfinished. A row admits there is no picture and gets denser instead.
+ * A small thumbnail leads the row (ProductImage) — enough to recognise a product
+ * without turning the row back into a card. Products without an `imageUrl` get a
+ * neutral placeholder in the same box, so the price column stays aligned whether
+ * or not a row has a picture.
  *
  * The whole row stays clickable via a stretched pseudo-element on the title link,
  * rather than wrapping everything in an <a>: a <button> inside an <a> is invalid
@@ -39,26 +41,34 @@ export function ProductRow({ product }: { product: Product }) {
         soldOut ? "bg-board" : "hover:bg-surface-muted"
       }`}
     >
-      <div className="min-w-0">
-        <h2 className="condensed line-clamp-2 text-row font-bold text-ink">
-          <Link
-            to={`/products/${product.id}`}
-            className="outline-none after:absolute after:inset-0 group-hover:text-amber"
-          >
-            {product.name}
-          </Link>
-        </h2>
+      <div className="flex min-w-0 items-start gap-3">
+        <ProductImage
+          src={product.imageUrl}
+          alt=""
+          className={`size-12 shrink-0 rounded-control ${soldOut ? "opacity-60 saturate-50" : ""}`}
+        />
 
-        {/*
-          The category was an eyebrow above the name. It sits under it now: a tag
-          on the item rather than a title for it, and it no longer pushes the two
-          facts that matter down the row.
-        */}
-        <p className="rail mt-1">{product.category.name}</p>
+        <div className="min-w-0 flex-1">
+          <h2 className="condensed line-clamp-2 text-row font-bold text-ink">
+            <Link
+              to={`/products/${product.id}`}
+              className="outline-none after:absolute after:inset-0 group-hover:text-amber"
+            >
+              {product.name}
+            </Link>
+          </h2>
 
-        {product.description && (
-          <p className="mt-1.5 truncate text-meta text-ink-subtle">{product.description}</p>
-        )}
+          {/*
+            The category was an eyebrow above the name. It sits under it now: a tag
+            on the item rather than a title for it, and it no longer pushes the two
+            facts that matter down the row.
+          */}
+          <p className="rail mt-1">{product.category.name}</p>
+
+          {product.description && (
+            <p className="mt-1.5 truncate text-meta text-ink-subtle">{product.description}</p>
+          )}
+        </div>
       </div>
 
       {/* Order on mobile puts the price beside the name; stock follows underneath. */}
@@ -90,10 +100,13 @@ export function ProductRowSkeleton() {
       aria-hidden="true"
       className="grid animate-pulse grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_10rem]"
     >
-      <div className="min-w-0">
-        <div className="h-5 w-2/5 rounded bg-skeleton" />
-        <div className="mt-2 h-2.5 w-20 rounded bg-skeleton" />
-        <div className="mt-2 h-3 w-3/5 rounded bg-skeleton" />
+      <div className="flex items-start gap-3">
+        <div className="size-12 shrink-0 rounded-control bg-skeleton" />
+        <div className="min-w-0 flex-1">
+          <div className="h-5 w-2/5 rounded bg-skeleton" />
+          <div className="mt-2 h-2.5 w-20 rounded bg-skeleton" />
+          <div className="mt-2 h-3 w-3/5 rounded bg-skeleton" />
+        </div>
       </div>
       <div className="h-7 w-24 justify-self-end rounded bg-skeleton sm:order-3 sm:w-28" />
       <div className="h-5 w-20 rounded-control bg-skeleton sm:order-2" />
