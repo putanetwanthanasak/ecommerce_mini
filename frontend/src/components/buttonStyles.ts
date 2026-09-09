@@ -40,21 +40,20 @@ const BASE =
 
 const VARIANTS: Record<ButtonVariant, string> = {
   /*
-   * A dark neutral fill with light text — a plain, high-contrast primary. `text-board`
-   * (the near-white canvas colour) rather than `text-white`, so it tracks the theme if
-   * the canvas is ever retoned. Hover lightens the fill one step; it must NOT go to
-   * white, which would leave the near-white label invisible.
+   * The brand purple, with a near-white label — the primary action everywhere: add to
+   * cart, checkout, place order, auth submits. `text-brand-foreground` rather than
+   * `text-white` so it tracks the token. Hover darkens the fill a step.
    *
-   * The purple accent is deliberately NOT the primary fill yet — a dedicated brand
-   * token and a filled-purple treatment are a separate, deliberate change (see the
-   * note on --color-info in index.css).
+   * This replaced a dark `bg-ink` primary on 2026-09-09, when the project committed to
+   * full parity with the reference mockup (which fills its primary with `--primary`,
+   * the same purple). See DESIGN.md.
    *
-   * Disabled reads as a filled-but-inert control rather than a faded one, because the
-   * label carries information: "Out of stock" is the explanation for why the control is
-   * dead, so it has to stay readable.
+   * Disabled just fades — a sold-out control uses the `secondary` variant with a Ban
+   * icon and a "Sold out" label instead of a disabled primary, so nothing important is
+   * being read off a faded button.
    */
   primary:
-    "bg-ink text-board hover:bg-ink-muted disabled:bg-surface-muted disabled:text-ink-faint disabled:hover:bg-surface-muted",
+    "bg-brand text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:hover:bg-brand",
   secondary:
     "border border-edge bg-surface text-ink-muted hover:border-ink-subtle hover:bg-surface-muted hover:text-ink disabled:opacity-40 disabled:hover:border-edge disabled:hover:bg-surface",
   /** The retry inside ErrorBanner: reads as part of the error, not a second alarm. */

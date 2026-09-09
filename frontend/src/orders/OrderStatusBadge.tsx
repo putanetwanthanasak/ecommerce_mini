@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { Badge, type BadgeTone } from "../components/Badge";
+import { CheckCircleIcon, ClockIcon, TruckIcon, XCircleIcon } from "../components/icons";
 import type { OrderStatus } from "./ordersApi";
 
 /**
@@ -29,6 +31,19 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 /**
+ * A leading mark per status, the same convention as StockBadge: a clock while
+ * it waits, a check once money has settled, a truck once it ships, and the
+ * struck-circle for a cancelled order. No new colours — the tone table above is
+ * unchanged; the icon just makes the state legible at a glance.
+ */
+const STATUS_ICONS: Record<OrderStatus, ReactNode> = {
+  PENDING: <ClockIcon />,
+  PAID: <CheckCircleIcon />,
+  SHIPPED: <TruckIcon />,
+  CANCELLED: <XCircleIcon />,
+};
+
+/**
  * An order's status as a badge.
  *
  * Lives in orders/ rather than inside a page because the admin screens will
@@ -36,5 +51,9 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
  * colour SHIPPED is would be the obvious thing to get wrong.
  */
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-  return <Badge tone={STATUS_TONES[status]}>{STATUS_LABELS[status]}</Badge>;
+  return (
+    <Badge tone={STATUS_TONES[status]} icon={STATUS_ICONS[status]}>
+      {STATUS_LABELS[status]}
+    </Badge>
+  );
 }

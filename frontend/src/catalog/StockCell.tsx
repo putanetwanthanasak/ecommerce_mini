@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
-/** Below this, the count is the headline and it turns amber. */
-const LOW_STOCK_THRESHOLD = 5;
+import { getStockState } from "./stockState";
 
 /**
  * Stock, as a plain figure in the STOCK column.
@@ -22,8 +20,9 @@ const LOW_STOCK_THRESHOLD = 5;
  */
 export function StockCell({ stock }: { stock: number }) {
   const changed = useRecentlyChanged(stock);
+  const state = getStockState(stock);
 
-  if (stock <= 0) {
+  if (state === "out-of-stock") {
     return (
       <span className="text-rail font-semibold tracking-[0.12em] text-critical uppercase">
         {/* <s> is the honest element: this is information that is no longer accurate. */}
@@ -32,7 +31,7 @@ export function StockCell({ stock }: { stock: number }) {
     );
   }
 
-  const low = stock <= LOW_STOCK_THRESHOLD;
+  const low = state === "low-stock";
 
   return (
     <span

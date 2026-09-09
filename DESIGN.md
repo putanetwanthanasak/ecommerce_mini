@@ -187,6 +187,74 @@ components:
     typography: "{typography.row}"
 ---
 
+> ## SUPERSEDED — third direction change (branch `feat/card-grid-catalog`)
+>
+> This document describes the original dark **"Departures Board"** system. Two
+> direction changes have overtaken it since, and it is kept as the record of
+> where the design started, not as a description of what ships.
+>
+> **1 — Light retheme (commit `0cc770d`, branch `chore/light-theme`).** The dark,
+> single-polarity board was replaced by a light, warm-neutral palette with a
+> purple accent. The **Colors** and **Elevation & Depth** sections below no
+> longer match the running app; `frontend/src/index.css` is the source of truth
+> for the palette, and cards now carry a real `box-shadow`. `frontend/index.html`
+> holds the note written for that shift — it is left exactly as it was.
+>
+> **2 — Card grid (this branch).** The catalog's one-product-per-row layout is
+> replaced by a **card grid**: a square product image with a stock-state pill
+> badge in its corner, then the category as an eyebrow, the name, and a price /
+> add-to-cart row. The product detail image is reframed onto the same card
+> surface (panel radius, hairline, soft shadow). This retires, for the catalog:
+> **"Board Row (signature)"**, **"Rows and rails, never cards and shadows"**, and
+> the Don't **"build a product card with an image slot"**.
+>
+> _Why._ The row layout — and every "there is no product photography, and no
+> column to put one in" argument behind it — was written when the schema had no
+> image column and none was planned. `Product.imageUrl` exists now and the demo
+> catalog ships real photographs, so the premise the row rested on is simply
+> gone. A row can hold a thumbnail; it cannot make the image the point of the
+> card, and showing the product is the job now.
+>
+> The wordmark is renamed **Commerce → Limina** at the same time. It was always
+> flagged as a placeholder; its type treatment (row-scale condensed caps at
+> 0.16em) is unchanged.
+>
+> **3 — Full parity with the reference mockup (2026-09-09).** The card grid was a
+> curated, partial match to the reference design at
+> `C:\Users\monja\Documents\product-catalog`; that curation was scoping error on
+> our part. The project has now matched the reference across every page — layout,
+> spacing, iconography, and colour — and the design decisions it contradicts are
+> retired, not preserved:
+>
+> - **Purple is the brand colour, not a scoped accent.** It fills the primary
+>   button everywhere (add to cart, checkout, place order, auth submits), the
+>   wordmark tile, the cart control, and the active category filter, and it is
+>   the product-link hover, focus ring and selection colour. `--color-brand` in
+>   `index.css` is the token. This voids: the **"Reserved Amber Rule"** clause
+>   that amber is "the hover state of a link into a product"; **"Primary: a
+>   printed flap — near-white `ink` fill"** in Buttons; the wordmark "turns amber
+>   on hover" line in Navigation; and **"Don't spend amber on … a button"** as it
+>   applied to the primary action. Amber still means "a figure that can change" —
+>   low stock, a PENDING order — and nothing static.
+> - **Category filters are a row of filled pills**, the active one filled with
+>   the brand purple. This voids **"Category tabs: a hairline tab strip, not a
+>   row of capsules … Never amber"** and the **"Printed Cell Rule"** as it barred
+>   `rounded-full` here.
+> - **Checkout shows a cosmetic shipping + payment form** (address fields, card
+>   number / expiry / CVC) in the reference's two-column layout, with an order
+>   summary in a side panel. It is labelled plainly as taking no payment and
+>   storing no address; a card number ending in `0000` previews a declined state
+>   entirely client-side. **`POST /api/orders` is unchanged — items only, no
+>   price, no address, no card.** This replaces the "no payment UI" framing: the
+>   UI exists, the integration does not, and the copy says so.
+> - Radii, container widths, the icon set, and the empty-state treatment now
+>   follow the reference rather than the board's two small radii.
+>
+> Everything below this line is the earlier direction, retained as the record of
+> where the design started — not a description of what ships.
+
+---
+
 # Design System: Commerce
 
 ## Overview
@@ -222,7 +290,7 @@ Three close steps of dark carry every surface, four steps of near-white carry ev
 
 - **Reserved Amber** (`amber`): a figure that can still change. The stock count below the low threshold, a PENDING order's badge, the focus ring, the text caret, `::selection`, and the hover state of a link into a product. Nothing static. `amber-surface` is its tinted panel, `caution-edge` its border.
 - **Settled Green** (`signal`): the flap has stopped turning. Stock in hand, a SHIPPED order, the post-checkout confirmation panel. `signal-surface` / `positive-edge` complete the family.
-- **Gone Red** (`alert`): sold out, and every error the backend actually reported. `alert-surface` / `critical-edge` complete it. Used for failure, never for a customer's own cancellation.
+- **Gone Red** (`alert`): a sold-out product *where that is the only signal* — the struck-through Stock Cell figure on the detail page — and every error the backend actually reported. `alert-surface` / `critical-edge` complete it. Used for failure, never for a customer's own cancellation. It is deliberately **not** the catalog card's stock badge: there the dimmed image and disabled add button already carry "unavailable", so the badge stays `neutral` (see **Badges**).
 
 ### Tertiary
 
@@ -331,7 +399,8 @@ One component, four variants, three sizes — and a `buttonClass()` function kep
 
 - **Style:** the printed cell — control radius, transparent border filled in by tone, 0.6875rem uppercase at 0.06em tracking.
 - **Tones:** `neutral` (hairline border, `surface-muted` fill, `ink-subtle` text), `positive`, `caution`, `critical`, `info` — each a matched border/surface/text triple from its colour family.
-- **Mapping:** order status uses caution → info → positive → neutral for PENDING → PAID → SHIPPED → CANCELLED, keyed off the backend enum so a new status is a type error rather than an unstyled cell. Stock does *not* use a badge (see below).
+- **Order status mapping:** caution → info → positive → neutral for PENDING → PAID → SHIPPED → CANCELLED, keyed off the backend enum so a new status is a type error rather than an unstyled cell.
+- **Stock badge** (`StockBadge`, on a catalog card only — added with the card grid; see the SUPERSEDED note at the top): a `Badge` with a leading state icon, overlaid on the product image. `positive` + check for in-stock, carrying the count; `caution` + triangle for low, "N left"; and **`neutral` + × for out-of-stock — deliberately grey, not `critical` red.** A sold-out card already says so twice: the image is dimmed (`opacity-70 saturate-50`) and the add button is disabled behind an "Out of stock" label. A red badge on top of that is a third alarm for one fact, and it turns a routine "check back later" into something that reads as broken. Red stays on the **Stock Cell** (below), where on the detail page the struck-through figure is the *only* signal and has to carry the weight. This is the same reasoning as the **Danger** button variant — one alarm per fact, not two.
 
 ### Cards / Containers
 
@@ -363,7 +432,7 @@ Stock is a **printed figure**, not a badge — the correction that made the thes
 
 - **Settled** — `signal` green: the flap has stopped turning.
 - **Low** (5 or fewer) — `amber`: the board's reserved colour for a figure that can still change.
-- **Gone** — `critical` red, wrapped in `<s>`, with no figure to print: this is information that is no longer accurate, and `<s>` is the honest element for that.
+- **Gone** — `critical` red, wrapped in `<s>`, with no figure to print: this is information that is no longer accurate, and `<s>` is the honest element for that. Red is right *here* because on the detail page this figure is the only thing announcing "unavailable". The catalog card, which also dims the image and disables the button, uses a `neutral` badge instead (see **Badges**) — the rule is "red when it's the sole signal", not "red for out-of-stock everywhere".
 
 The count and its unit are announced as one sentence through `aria-label` while both visible parts are `aria-hidden`, so a screen reader hears "Only 2 left" and sighted users read the column.
 
@@ -406,6 +475,7 @@ A `hairline` top rule, prev/next as `sm` secondary buttons disabled at the bound
 
 Recorded as open, not as system rules. A future pass should resolve these rather than inherit them.
 
+- **`--color-brand` + a purple primary button — done (2026-09-09).** `--color-brand` is the token; the `primary` button variant fills with it across the app, and it is the wordmark tile, cart control, active category filter, product-link hover, focus ring and selection colour. `--color-info` (the PAID badge) now aliases `--color-brand` — same value, kept as a separate name. See parity note 3 at the top of this file.
 - **Named-forward ceiling work, not yet built.** No flap carries the horizontal seam that most identifies the medium; figures are set as text rather than in character cells; the board is a 1024px centred panel rather than something read across the window. These are the three moves that would take the world from convincing to unmistakable.
 - **Two `rounded-full` count bubbles survive** the printed-cell rule — the header cart count and the Admin marker on `/account`. They contradict **The Printed Cell Rule** above; the rule is correct and these are the drift.
 - **`/account` is behind the rest of the system.** Its two `<dt>` labels hand-roll the rail's properties instead of using the `rail` utility, and its Admin marker is a pill where `AppLayout` uses a proper badge.

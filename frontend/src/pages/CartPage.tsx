@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
-import { Button } from "../components/Button";
 import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
+import { ArrowRightIcon, BagIcon } from "../components/icons";
 import { useCart } from "../cart/cartContext";
 import { CartRow } from "../cart/CartRow";
 import { useCartLines } from "../cart/useCartLines";
@@ -23,14 +23,16 @@ export function CartPage() {
 
   if (isEmpty) {
     return (
-      <AppLayout>
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your cart</h1>
-        <div className="mt-8">
+      <AppLayout size="5xl">
+        <h1 className="condensed text-title font-bold tracking-tight text-ink">Your cart</h1>
+        <p className="mt-1 text-meta text-ink-subtle">Nothing here yet</p>
+        <div className="mt-10">
           <EmptyState
+            icon={<BagIcon />}
             title="Your cart is empty"
-            message="Browse the catalog and add something to get started."
+            message="Add a few things and they'll show up here."
             action={
-              <Link to="/products" className={buttonClass()}>
+              <Link to="/products" className={buttonClass({ variant: "primary" })}>
                 Browse products
               </Link>
             }
@@ -41,62 +43,94 @@ export function CartPage() {
   }
 
   return (
-    <AppLayout>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your cart</h1>
-        <p className="text-meta text-ink-subtle">
-          {itemCount} {itemCount === 1 ? "item" : "items"}
-          {isLoading && " · checking stock…"}
-        </p>
-      </div>
+    <AppLayout size="5xl">
+      <h1 className="condensed text-title font-bold tracking-tight text-ink">Your cart</h1>
+      <p className="mt-1 text-meta text-ink-subtle">
+        {itemCount} {itemCount === 1 ? "item" : "items"}
+        {isLoading && " · checking stock…"}
+      </p>
 
-      <ul className="surface mt-6 divide-y divide-hairline">
-        {lines.map((line) => (
-          <CartRow
-            key={line.item.productId}
-            line={line}
-            onQuantityChange={(quantity) => setQuantity(line.item.productId, quantity)}
-            onRemove={() => removeItem(line.item.productId)}
-          />
-        ))}
-      </ul>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
+        <div>
+          <ul className="flex flex-col gap-4">
+            {lines.map((line) => (
+              <CartRow
+                key={line.item.productId}
+                line={line}
+                onQuantityChange={(quantity) => setQuantity(line.item.productId, quantity)}
+                onRemove={() => removeItem(line.item.productId)}
+              />
+            ))}
+          </ul>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <Button onClick={clear}>Clear cart</Button>
+          <button
+            type="button"
+            onClick={clear}
+            className="focus-ring mt-4 rounded-control text-meta font-medium text-ink-subtle underline-offset-4 transition hover:text-critical hover:underline"
+          >
+            Clear cart
+          </button>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-5">
-          <div className="text-right">
-            <p className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Total</p>
-            <p className="figures text-figure text-ink">{formatCents(totalCents)}</p>
-          </div>
+        <aside className="surface h-fit p-6 lg:sticky lg:top-6">
+          <h2 className="condensed text-row font-bold text-ink">Order summary</h2>
+
+          <dl className="mt-4 flex flex-col gap-3 text-meta">
+            <div className="flex justify-between">
+              <dt className="text-ink-subtle">Subtotal</dt>
+              <dd className="figures text-ink">{formatCents(totalCents)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink-subtle">Shipping</dt>
+              <dd className="font-medium text-signal">Free</dd>
+            </div>
+            <div className="mt-2 flex justify-between border-t border-hairline pt-3">
+              <dt className="condensed font-bold text-ink">Total</dt>
+              <dd className="figures text-row text-ink">{formatCents(totalCents)}</dd>
+            </div>
+          </dl>
 
           {/*
            * A 404'd line blocks checkout outright: the backend throws on the
            * first missing product and rolls the whole order back, so sending it
            * can only fail. Everything else — including a line that wants more
-           * than the live stock — is allowed through, because the stock number
-           * here is a read that may already be stale and the order transaction
-           * is the only place that can actually decide. Checkout handles the
-           * 409 if it loses that race.
+           * than the live stock — is allowed through, because that stock number
+           * is a read that may already be stale and the order transaction is
+           * the only place that can actually decide.
            */}
           {hasUnavailable ? (
-            <div className="text-right">
-              <Button variant="primary" disabled>
+            <>
+              <button
+                type="button"
+                disabled
+                className={buttonClass({ variant: "primary", fullWidth: true, className: "mt-6" })}
+              >
                 Checkout
-              </Button>
+              </button>
               <p className="mt-1.5 text-rail text-critical">Remove unavailable items first.</p>
-            </div>
+            </>
           ) : (
-            <Link to="/checkout" className={buttonClass({ variant: "primary" })}>
+            <Link
+              to="/checkout"
+              className={buttonClass({ variant: "primary", fullWidth: true, className: "mt-6" })}
+            >
               Checkout
+              <ArrowRightIcon />
             </Link>
           )}
-        </div>
-      </div>
 
-      <p className="mt-4 text-rail text-ink-faint">
-        Prices are confirmed by the server when you place the order.
-      </p>
+          <Link
+            to="/products"
+            className="focus-ring mt-2 block rounded-control py-2 text-center text-meta font-medium text-ink-subtle transition hover:text-ink"
+          >
+            Continue shopping
+          </Link>
+
+          <p className="mt-4 text-rail text-ink-faint">
+            Prices are confirmed by the server when you place the order.
+          </p>
+        </aside>
+      </div>
     </AppLayout>
   );
 }

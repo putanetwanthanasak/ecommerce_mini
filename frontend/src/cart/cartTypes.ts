@@ -21,6 +21,12 @@ import type { Product } from "../catalog/catalogApi";
  *     page re-fetches every product on mount and the backend's `stock >= qty`
  *     guard is the only thing that actually decides. See CLAUDE.md: a check is
  *     not a lock.
+ *
+ *   - `imageUrl` is the catalog thumbnail, snapshotted for the same reason as
+ *     `name` — so the cart and checkout render a picture without a request per
+ *     row. A public catalog URL, nothing private (CLAUDE.md frontend invariant
+ *     9 still holds). Old carts written before this field simply have no
+ *     thumbnail until the cart page's re-fetch supplies one.
  */
 export interface CartItem {
   productId: string;
@@ -31,6 +37,8 @@ export interface CartItem {
   price: string;
   /** Display-only snapshot — stock as it was when this item was added. */
   stock: number;
+  /** Display-only snapshot — catalog image URL, or null. Rendered via <ProductImage>. */
+  imageUrl: string | null;
 }
 
 /** Builds a cart line from a catalog product. */
@@ -41,6 +49,7 @@ export function toCartItem(product: Product, quantity: number): CartItem {
     name: product.name,
     price: product.price,
     stock: product.stock,
+    imageUrl: product.imageUrl,
   };
 }
 

@@ -3,11 +3,13 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
-import { ArrowLeftIcon } from "../components/icons";
+import { ArrowLeftIcon, CheckCircleIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { PageLoader } from "../components/PageLoader";
+import { ProductImage } from "../catalog/ProductImage";
 import { ApiError } from "../lib/api";
 import { formatCents, formatPrice, lineTotalCents } from "../lib/money";
+import { countOrderItems, shortOrderId } from "../orders/orderDisplay";
 import { OrderStatusBadge } from "../orders/OrderStatusBadge";
 import { fetchOrder, orderKeys } from "../orders/ordersApi";
 
@@ -66,7 +68,7 @@ export function OrderDetailPage() {
      */
     if (status === 403) {
       return (
-        <AppLayout>
+        <AppLayout size="3xl">
           <BackToOrders />
           <div className="mt-6">
             <EmptyState
@@ -85,7 +87,7 @@ export function OrderDetailPage() {
 
     if (status === 404) {
       return (
-        <AppLayout>
+        <AppLayout size="3xl">
           <BackToOrders />
           <div className="mt-6">
             <EmptyState
@@ -103,7 +105,7 @@ export function OrderDetailPage() {
     }
 
     return (
-      <AppLayout>
+      <AppLayout size="3xl">
         <BackToOrders />
         <div className="mt-6">
           <ErrorBanner
@@ -117,85 +119,97 @@ export function OrderDetailPage() {
   }
 
   const order = query.data;
+  const itemCount = countOrderItems(order);
 
   return (
-    <AppLayout>
+    <AppLayout size="3xl">
       <BackToOrders />
 
       {justPlaced && (
-        <div className="mt-6 rounded-panel border border-positive-edge bg-positive-surface px-5 py-4">
-          <p className="text-meta font-semibold text-positive">Order placed</p>
-          <p className="mt-1 text-meta text-positive">
-            Stock has been reserved for every item below.
-          </p>
+        <div className="mt-6 flex items-center gap-4 rounded-panel border border-positive-edge bg-positive-surface p-5">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-signal text-xl text-brand-foreground">
+            <CheckCircleIcon />
+          </span>
+          <div>
+            <h1 className="condensed text-row font-bold tracking-tight text-signal">Order confirmed</h1>
+            <p className="text-meta text-ink-subtle">
+              Your order has been placed and stock reserved for every item below.
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Order details</h1>
-        <OrderStatusBadge status={order.status} />
-      </div>
-
-      <dl className="mt-4 hairline-grid sm:grid-cols-2">
-        <div className="bg-surface p-5">
-          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Order ID</dt>
-          <dd className="mt-1.5 font-mono text-rail break-all text-ink-muted">{order.id}</dd>
+      <div className="surface mt-6 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline pb-5">
+          <div>
+            <p className="rail">Order</p>
+            <p className="figures mt-0.5 text-row text-ink">#{shortOrderId(order.id)}</p>
+            <p className="mt-1 text-meta text-ink-subtle">
+              Placed{" "}
+              <time dateTime={order.createdAt}>
+                {new Date(order.createdAt).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </time>
+            </p>
+          </div>
+          <OrderStatusBadge status={order.status} />
         </div>
-        <div className="bg-surface p-5">
-          <dt className="text-rail font-medium tracking-wide text-ink-subtle uppercase">Placed</dt>
-          <dd className="mt-1.5 text-meta text-ink">
-            <time dateTime={order.createdAt}>{new Date(order.createdAt).toLocaleString()}</time>
-          </dd>
-        </div>
-      </dl>
 
-      <ul className="mt-6 divide-y divide-hairline surface">
-        {order.items.map((item) => (
-          <li key={item.id} className="flex items-center gap-4 px-5 py-4">
-            <div className="min-w-40 flex-1">
-              <Link
-                to={`/products/${item.productId}`}
-                className="condensed text-row font-bold text-ink underline-offset-4 hover:text-amber hover:underline"
-              >
-                {item.product.name}
-              </Link>
-              {/*
-               * priceAtPurchase, NOT product.price.
-               *
-               * This is the price the customer actually paid, copied onto the
-               * order row inside the transaction that placed it. product.price
-               * is whatever the product costs right now, and the two diverge the
-               * moment an admin reprices anything. Rendering the live price here
-               * would silently rewrite the customer's receipt — the total below
-               * would stop matching the lines, and an order from last month
-               * would show a number nobody was ever charged. This matters more
-               * now than it did at checkout: history is exactly where the two
-               * prices have had time to drift apart.
-               */}
-              <p className="mt-0.5 text-meta text-ink-subtle">
-                <span className="figures">{formatPrice(item.priceAtPurchase)}</span> × {item.quantity}
-              </p>
-            </div>
-            <div className="figures text-meta text-ink">
-              {formatCents(lineTotalCents(item.priceAtPurchase, item.quantity))}
-            </div>
-          </li>
-        ))}
+        <ul className="flex flex-col divide-y divide-hairline">
+          {order.items.map((item) => (
+            <li key={item.id} className="flex items-center gap-4 py-4">
+              {/* Order lines carry no image URL from the API, so this is always
+                  the neutral placeholder — kept for layout parity with the cart
+                  and checkout, and it fills in on its own if the field is added. */}
+              <ProductImage
+                src={null}
+                alt=""
+                className="size-16 shrink-0 rounded-control"
+              />
 
-        <li className="flex items-center justify-between gap-4 bg-surface-sunken px-5 py-4">
-          <span className="text-meta font-medium text-ink-muted">Total</span>
-          {/* The backend's own total, not a sum computed here — it is the
-              authoritative number and the one that was charged. */}
-          <span className="figures text-figure text-ink">
-            {formatPrice(order.totalPrice)}
+              <div className="min-w-0 flex-1">
+                <h2 className="condensed leading-snug font-semibold text-ink">
+                  <Link
+                    to={`/products/${item.productId}`}
+                    className="focus-ring rounded-control transition hover:text-brand"
+                  >
+                    {item.product.name}
+                  </Link>
+                </h2>
+                {/*
+                 * priceAtPurchase, NOT product.price — the price the customer
+                 * actually paid, copied onto the order row inside the transaction
+                 * that placed it. Rendering today's product.price here would
+                 * silently rewrite the receipt: the total below would stop
+                 * matching the lines, and a repriced product would show a number
+                 * nobody was ever charged.
+                 */}
+                <p className="mt-0.5 text-meta text-ink-subtle">
+                  <span className="figures">{formatPrice(item.priceAtPurchase)}</span> ×{" "}
+                  {item.quantity}
+                </p>
+              </div>
+
+              <span className="figures shrink-0 text-row text-ink">
+                {formatCents(lineTotalCents(item.priceAtPurchase, item.quantity))}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center justify-between border-t border-hairline pt-5">
+          <span className="text-meta text-ink-subtle">
+            {itemCount} {itemCount === 1 ? "item" : "items"}
           </span>
-        </li>
-      </ul>
-
-      <div className="mt-6">
-        <Link to="/products" className={buttonClass()}>
-          Continue shopping
-        </Link>
+          <div className="flex items-baseline gap-2">
+            <span className="text-meta text-ink-subtle">Total</span>
+            {/* The backend's own total, not re-derived from today's prices. */}
+            <span className="figures text-figure text-ink">{formatPrice(order.totalPrice)}</span>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

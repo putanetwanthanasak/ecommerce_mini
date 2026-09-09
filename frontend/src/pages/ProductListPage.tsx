@@ -4,11 +4,11 @@ import { AppLayout } from "../components/AppLayout";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
-import { FormField } from "../components/FormField";
+import { SearchIcon } from "../components/icons";
 import { catalogKeys, fetchProducts } from "../catalog/catalogApi";
 import { CategoryFilter } from "../catalog/CategoryFilter";
 import { Pagination } from "../components/Pagination";
-import { ProductRow, ProductRowSkeleton } from "../catalog/ProductRow";
+import { ProductCard, ProductCardSkeleton } from "../catalog/ProductCard";
 import { useCatalogParams, DEFAULT_PAGE_SIZE } from "../catalog/useCatalogParams";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
@@ -130,26 +130,22 @@ export function ProductListPage() {
     if (products.length === 0) return renderEmpty();
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/*
-          One row per product, separated by hairline rules. The column header row
-          above names what each column holds — which is what makes the list
-          readable without a single product image — and it only works because
-          every price lands in one column.
+          A card grid — image first. The columns step 1 → 2 → 4 with the
+          viewport; the image carries the recognition the old list leaned on a
+          column rail to supply.
         */}
-        <div>
-          <ColumnRail />
-          <ul
-            aria-busy={isRefreshing}
-            className={`surface divide-y divide-hairline transition-opacity ${
-              isRefreshing ? "opacity-60" : "opacity-100"
-            }`}
-          >
-            {products.map((product) => (
-              <ProductRow key={product.id} product={product} />
-            ))}
-          </ul>
-        </div>
+        <ul
+          aria-busy={isRefreshing}
+          className={`grid grid-cols-1 gap-5 transition-opacity sm:grid-cols-2 lg:grid-cols-4 ${
+            isRefreshing ? "opacity-60" : "opacity-100"
+          }`}
+        >
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </ul>
 
         {pagination && (
           <Pagination
@@ -166,48 +162,62 @@ export function ProductListPage() {
   return (
     <AppLayout>
       {/*
-        The heading is set small, as a label, not a display line. It used to be the
-        largest text on the page — the loudest word on a shopping page being
-        "Products", the name of a database table. The prices are the largest type
-        here now, because they are what the visitor came to read.
+        A card grid puts an image on the page, so the heading no longer has to
+        stay out of the way of the prices — it reads at title scale, with the
+        catalog's own line under it.
       */}
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">
-          Products
-        </h1>
-        {pagination && (
-          <p className="text-meta text-ink-subtle">
-            {/*
-              NO BARE NUMBERS: a count says what it counts. This read "12 products
-              matching" — a sentence that stopped mid-thought and never named what
-              they matched.
-            */}
-            <span className="figures text-ink-muted">{pagination.total}</span>{" "}
-            {pagination.total === 1 ? "product" : "products"}
-            {hasFilters && params.search && ` matching “${params.search}”`}
-            {hasFilters && !params.search && " in this category"}
-          </p>
-        )}
+      <div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <h1 className="condensed text-title font-bold tracking-tight text-ink">Products</h1>
+          {pagination && (
+            <p className="text-meta text-ink-subtle">
+              {/*
+                NO BARE NUMBERS: a count says what it counts. This read "12 products
+                matching" — a sentence that stopped mid-thought and never named what
+                they matched.
+              */}
+              <span className="figures text-ink-muted">{pagination.total}</span>{" "}
+              {pagination.total === 1 ? "product" : "products"}
+              {hasFilters && params.search && ` matching “${params.search}”`}
+              {hasFilters && !params.search && " in this category"}
+            </p>
+          )}
+        </div>
+        <p className="mt-2 text-body text-ink-subtle">
+          A small, careful catalog for people who build things.
+        </p>
       </div>
 
       {/* Filters stay mounted through the loading and error states — losing the
           controls is what turns a failed fetch into a dead end. */}
-      <div className="mt-6 space-y-4">
-        <div className="max-w-sm">
-          <FormField
-            label="Search"
-            name="search"
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="relative max-w-md">
+          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-faint">
+            <SearchIcon />
+          </span>
+          <input
             type="search"
+            name="search"
+            aria-label="Search products by name"
             placeholder="Search products by name"
+            autoComplete="off"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            autoComplete="off"
+            className="focus-ring h-11 w-full rounded-control border border-hairline bg-surface pr-3 pl-9 text-meta text-ink shadow-sm transition placeholder:text-ink-faint"
           />
         </div>
 
         <CategoryFilter selectedId={params.categoryId} onSelect={setCategoryId} />
 
-        {hasFilters && <Button onClick={handleClearFilters}>Clear filters</Button>}
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="focus-ring self-start rounded-control text-meta font-medium text-ink-subtle underline-offset-4 transition hover:text-ink hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="mt-8">{renderResults()}</div>
@@ -215,38 +225,13 @@ export function ProductListPage() {
   );
 }
 
-/**
- * The list's column header row.
- *
- * Hidden below `sm`, where the rows collapse to a stack and column headers would
- * be labelling columns that no longer exist. `aria-hidden` because these are
- * visual column labels for a list, not a data table — the rows carry their own
- * accessible text, and announcing "ITEM STOCK PRICE" before the list would be
- * noise to a screen reader.
- */
-function ColumnRail() {
-  return (
-    <div
-      aria-hidden="true"
-      className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_10rem] items-center gap-x-4 px-5 pb-2 sm:grid"
-    >
-      <span className="rail">Item</span>
-      <span className="rail">Stock</span>
-      <span className="rail text-right">Price</span>
-      {/* Spacer matching the add control's column so the labels stay over their columns. */}
-      <span aria-hidden="true" />
-    </div>
-  );
-}
-
 function ListSkeleton({ count }: { count: number }) {
   return (
     <div role="status" aria-live="polite">
       <span className="sr-only">Loading products</span>
-      <ColumnRail />
-      <ul className="surface divide-y divide-hairline">
+      <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: count }, (_, i) => (
-          <ProductRowSkeleton key={i} />
+          <ProductCardSkeleton key={i} />
         ))}
       </ul>
     </div>

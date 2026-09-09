@@ -5,7 +5,9 @@ import { Button } from "../components/Button";
 import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { ChevronRightIcon, PackageIcon } from "../components/icons";
 import { Pagination } from "../components/Pagination";
+import { ProductImage } from "../catalog/ProductImage";
 import { formatPrice } from "../lib/money";
 import { countOrderItems, shortOrderId } from "../orders/orderDisplay";
 import { OrderStatusBadge } from "../orders/OrderStatusBadge";
@@ -62,11 +64,12 @@ export function OrderListPage() {
 
       return (
         <EmptyState
+          icon={<PackageIcon />}
           title="No orders yet"
-          message="Orders you place will appear here, with what you paid for each item."
+          message="When you place an order, it'll show up here with what you paid for each item."
           action={
-            <Link to="/products" className={buttonClass()}>
-              Browse the catalog
+            <Link to="/products" className={buttonClass({ variant: "primary" })}>
+              Browse products
             </Link>
           }
         />
@@ -77,9 +80,7 @@ export function OrderListPage() {
       <div className="space-y-6">
         <ul
           aria-busy={isRefreshing}
-          className={`divide-y divide-hairline overflow-hidden surface transition-opacity ${
-            isRefreshing ? "opacity-60" : "opacity-100"
-          }`}
+          className={`space-y-4 transition-opacity ${isRefreshing ? "opacity-60" : "opacity-100"}`}
         >
           {orders.map((order) => (
             <OrderRow key={order.id} order={order} />
@@ -99,17 +100,15 @@ export function OrderListPage() {
   }
 
   return (
-    <AppLayout>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Your orders</h1>
-        {pagination && pagination.total > 0 && (
-          <p className="text-meta text-ink-subtle">
-            {pagination.total} {pagination.total === 1 ? "order" : "orders"}
-          </p>
-        )}
-      </div>
+    <AppLayout size="4xl">
+      <h1 className="condensed text-title font-bold tracking-tight text-ink">Order history</h1>
+      <p className="mt-1 text-meta text-ink-subtle">
+        {pagination && pagination.total > 0
+          ? `${pagination.total} ${pagination.total === 1 ? "order" : "orders"}`
+          : "Your past orders"}
+      </p>
 
-      <div className="mt-6">{renderContent()}</div>
+      <div className="mt-8">{renderContent()}</div>
     </AppLayout>
   );
 }
@@ -121,16 +120,28 @@ function OrderRow({ order }: { order: Order }) {
     <li>
       <Link
         to={`/orders/${order.id}`}
-        // The ring stays inset here rather than using the shared `focus-ring`
-        // utility: these rows are flush inside a bordered list, so an offset
-        // outline would be clipped by the container's overflow-hidden.
-        className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition outline-none hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus"
+        className="focus-ring surface card-interactive group flex items-center gap-4 p-4 sm:p-5"
       >
-        <div className="min-w-40 flex-1">
-          <p className="font-mono text-meta font-medium text-ink">
-            #{shortOrderId(order.id)}
-          </p>
-          <p className="mt-0.5 text-meta text-ink-subtle">
+        {/* A stack of the first few items' thumbnails, matching the reference.
+            Order lines carry no image URL from the API, so these are the neutral
+            placeholder for now. */}
+        <div className="flex -space-x-3">
+          {order.items.slice(0, 3).map((item) => (
+            <span
+              key={item.id}
+              className="size-14 shrink-0 overflow-hidden rounded-control border-2 border-surface bg-surface-muted"
+            >
+              <ProductImage src={null} alt="" className="size-full" fallbackIconClassName="text-base" />
+            </span>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="figures text-ink">#{shortOrderId(order.id)}</span>
+            <OrderStatusBadge status={order.status} />
+          </div>
+          <p className="mt-1 truncate text-meta text-ink-subtle">
             <time dateTime={order.createdAt}>
               {new Date(order.createdAt).toLocaleDateString(undefined, {
                 year: "numeric",
@@ -143,13 +154,14 @@ function OrderRow({ order }: { order: Order }) {
           </p>
         </div>
 
-        <OrderStatusBadge status={order.status} />
-
-        {/* The order's own total, recorded when it was placed — never re-derived
-            from today's product prices. See frontend invariant 13. */}
-        <span className="figures w-24 text-right text-meta text-ink">
-          {formatPrice(order.totalPrice)}
-        </span>
+        <div className="flex shrink-0 items-center gap-3">
+          {/* The order's own total, recorded when it was placed — never
+              re-derived from today's product prices. See frontend invariant 13. */}
+          <span className="figures text-row text-ink">{formatPrice(order.totalPrice)}</span>
+          <span className="text-ink-faint transition-transform group-hover:translate-x-0.5">
+            <ChevronRightIcon />
+          </span>
+        </div>
       </Link>
     </li>
   );
@@ -161,20 +173,23 @@ function OrderRow({ order }: { order: Order }) {
  */
 function OrderListSkeleton() {
   return (
-    <ul
-      className="divide-y divide-hairline overflow-hidden surface"
-      role="status"
-      aria-live="polite"
-    >
+    <ul className="space-y-4" role="status" aria-live="polite">
       <span className="sr-only">Loading your orders</span>
       {Array.from({ length: 4 }, (_, i) => (
-        <li key={i} className="flex animate-pulse items-center gap-4 px-5 py-4">
+        <li key={i} className="surface flex animate-pulse items-center gap-4 p-4 sm:p-5">
+          <div className="flex -space-x-3">
+            {Array.from({ length: 3 }, (_, j) => (
+              <span
+                key={j}
+                className="size-14 shrink-0 rounded-control border-2 border-surface bg-skeleton"
+              />
+            ))}
+          </div>
           <div className="flex-1">
-            <div className="h-4 w-24 rounded bg-skeleton" />
+            <div className="h-4 w-28 rounded bg-skeleton" />
             <div className="mt-2 h-3 w-40 rounded bg-skeleton" />
           </div>
-          <div className="h-5 w-16 rounded-control bg-skeleton" />
-          <div className="h-4 w-16 rounded bg-skeleton" />
+          <div className="h-5 w-16 rounded bg-skeleton" />
         </li>
       ))}
     </ul>
