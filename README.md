@@ -204,7 +204,9 @@ Render blueprint, Vercel SPA rewrite and CORS specifics: **[DEPLOYMENT.md](DEPLO
 
 Understood tradeoffs, not oversights:
 
-- **No rate limiting.** `/api/auth/login` can be brute-forced.
+- **Rate limiting is login-only and in-memory.** `POST /api/auth/login` is capped at 5 attempts per
+  IP+email per 15 min (`express-rate-limit`, 429). `/register` is not limited, and the counter store
+  is per-process — a multi-instance deploy would need a shared one (Redis).
 - **No refresh tokens.** A 1-day JWT can't be revoked; logout is client-side only. The token lives
   in `localStorage` — an accepted XSS exposure, with httpOnly cookies as the production answer.
 - **Idempotency keys are not pruned.** `POST /api/orders` dedupes on a required `Idempotency-Key`

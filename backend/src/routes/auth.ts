@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../utils/jwt";
+import { loginRateLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
@@ -43,7 +44,10 @@ router.post("/register", async (req, res, next) => {
 });
 
 // POST /api/auth/login
-router.post("/login", async (req, res, next) => {
+// loginRateLimiter throttles brute-force attempts (5 per IP+email per 15 min ->
+// 429). Only this route is limited; register is a weaker vector and is left as a
+// follow-up (see CLAUDE.md security note).
+router.post("/login", loginRateLimiter, async (req, res, next) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
