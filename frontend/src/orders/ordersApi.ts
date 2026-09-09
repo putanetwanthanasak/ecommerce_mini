@@ -17,8 +17,13 @@ export interface OrderItem {
    * the product is repriced. Rendering an order must always read this field.
    */
   priceAtPurchase: string;
-  /** The product as it is *now* — its `price` may already differ from priceAtPurchase. */
-  product: { id: string; name: string; price: string };
+  /**
+   * The product as it is *now* — its `price` may already differ from
+   * priceAtPurchase, and `imageUrl` is the current catalog image (nullable, same
+   * as `Product.imageUrl`). Rendered via `<ProductImage>`, which falls back to a
+   * neutral block when it's null.
+   */
+  product: { id: string; name: string; price: string; imageUrl: string | null };
 }
 
 export interface Order {

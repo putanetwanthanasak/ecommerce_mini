@@ -53,11 +53,15 @@ const listQuerySchema = z.object({
   userId: z.string().uuid("userId must be a valid UUID").optional(),
 });
 
-// Every order response carries its line items with the product name attached,
-// so a client can render an order without a second round trip per item.
+// Every order response carries its line items with the product's name, current
+// price and image attached, so a client can render an order — thumbnail and all —
+// without a second round trip per item. `imageUrl` is nullable (older products
+// predate the column); the frontend renders a neutral fallback when it's null.
 const orderInclude = {
   items: {
-    include: { product: { select: { id: true, name: true, price: true } } },
+    include: {
+      product: { select: { id: true, name: true, price: true, imageUrl: true } },
+    },
   },
 } satisfies Prisma.OrderInclude;
 
