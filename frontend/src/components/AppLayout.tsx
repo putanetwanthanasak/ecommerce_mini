@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authContext";
 import { CartBadge } from "../cart/CartBadge";
 import { Button } from "./Button";
+import { BagIcon } from "./icons";
 
 /**
  * Shell for every signed-in page — the counterpart to AuthLayout.
@@ -25,16 +26,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <header className="border-b border-hairline bg-board">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">
           {/*
-            The wordmark used to be 12px in the third-lightest grey available — quieter
-            than every badge on the page, in a slot designed to be invisible. It is set
-            at row size now, in tracked caps, so it reads as the brand rather than a
-            forgotten label.
+            The wordmark: a bag mark in the accent, then the name in tracked
+            caps. "Limina" replaced "Commerce", which was always flagged a
+            placeholder; the type treatment is unchanged.
           */}
           <Link
             to="/products"
-            className="focus-ring condensed rounded-control text-row leading-none font-bold tracking-[0.16em] text-ink uppercase transition hover:text-amber"
+            className="focus-ring group flex items-center gap-2 rounded-control transition"
           >
-            Commerce
+            <span className="grid size-8 place-items-center rounded-control bg-ink text-board">
+              <BagIcon />
+            </span>
+            <span className="condensed text-row leading-none font-bold tracking-[0.16em] text-ink uppercase transition group-hover:text-amber">
+              Limina
+            </span>
           </Link>
 
           <div className="flex flex-wrap items-center justify-end gap-3">

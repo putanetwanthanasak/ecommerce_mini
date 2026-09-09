@@ -71,3 +71,42 @@ export function ImageIcon() {
     </Svg>
   );
 }
+
+// A shopping bag — the brand mark in the header and the cart control's glyph.
+export function BagIcon() {
+  return (
+    <Svg>
+      <path d="M4.25 5.5h7.5l.55 7.2a1.25 1.25 0 0 1-1.25 1.35H4.95a1.25 1.25 0 0 1-1.25-1.35z" />
+      <path d="M6 5.5V5a2 2 0 0 1 4 0v.5" />
+    </Svg>
+  );
+}
+
+// The three stock-state marks, one per StockBadge tone.
+export function CheckIcon() {
+  return (
+    <Svg>
+      <path d="m3.5 8.5 3 3 6-6.5" />
+    </Svg>
+  );
+}
+
+export function AlertTriangleIcon() {
+  return (
+    <Svg>
+      <path d="M8 2.75 14.5 13.5H1.5z" />
+      <path d="M8 6.75v3" />
+      <path d="M8 11.4h.01" />
+    </Svg>
+  );
+}
+
+export function XCircleIcon() {
+  return (
+    <Svg>
+      <circle cx="8" cy="8" r="5.5" />
+      <path d="m6 6 4 4" />
+      <path d="m10 6-4 4" />
+    </Svg>
+  );
+}

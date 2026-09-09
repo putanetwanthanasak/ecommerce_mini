@@ -158,6 +158,26 @@
 }
 
 /*
+ * A catalog card: a `surface` that lifts slightly under the pointer. The resting
+ * shadow is `surface`'s own; hover deepens it and warms the border a step. Split
+ * from `surface` because that utility also wraps static list containers and
+ * loading skeletons, which must not move when the pointer crosses them — only a
+ * thing you can click should react to being pointed at.
+ */
+@utility card-interactive {
+  transition:
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+
+  &:hover {
+    border-color: var(--color-edge);
+    box-shadow:
+      0 4px 12px -2px oklch(0% 0 0 / 0.1),
+      0 2px 6px -3px oklch(0% 0 0 / 0.1);
+  }
+}
+
+/*
  * The hairline grid: a definition list whose 1px gaps ARE the cell borders, drawn by
  * letting the container's background show through as thin dividing lines.
  */

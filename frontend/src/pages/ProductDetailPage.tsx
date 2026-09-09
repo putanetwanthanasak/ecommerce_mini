@@ -57,15 +57,20 @@ export function ProductDetailPage() {
 
     return (
       <article className="surface p-6 sm:p-8">
-        {/* Detail view has room for a real image; the catalog row shows a
-            thumbnail of the same URL. Falls back to a neutral block when the
-            product has no imageUrl. */}
-        <ProductImage
-          src={product.imageUrl}
-          alt={product.name}
-          className="mb-6 aspect-[5/2] w-full rounded-panel"
-          fallbackIconClassName="text-4xl"
-        />
+        {/* The image, framed like a catalog card — same panel radius, hairline
+            and soft shadow (the `surface` utility) — so the detail view reads as
+            the same surface family as the grid it came from. A 16:9 banner: more
+            image than the old 5:2 letterbox, short enough to keep the price and
+            the buy control near the top of the page. Falls back to a neutral
+            block when the product has no imageUrl. */}
+        <div className="surface mb-8 overflow-hidden">
+          <ProductImage
+            src={product.imageUrl}
+            alt={product.name}
+            className="aspect-[16/9] w-full"
+            fallbackIconClassName="text-5xl"
+          />
+        </div>
 
         {/*
           The name leads. The category used to sit above it as an eyebrow — a label
@@ -168,8 +173,8 @@ function ProductDetailSkeleton() {
       aria-live="polite"
     >
       <span className="sr-only">Loading product</span>
-      <div className="aspect-[5/2] w-full rounded-panel bg-skeleton" />
-      <div className="mt-6 h-3 w-24 rounded bg-skeleton" />
+      <div className="aspect-[16/9] w-full rounded-panel border border-hairline bg-skeleton" />
+      <div className="mt-8 h-3 w-24 rounded bg-skeleton" />
       <div className="mt-3 h-7 w-2/3 rounded bg-skeleton" />
       <div className="mt-5 h-9 w-32 rounded bg-skeleton" />
       <div className="mt-6 border-t border-hairline pt-6">

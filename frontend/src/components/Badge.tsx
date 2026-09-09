@@ -23,6 +23,21 @@ const TONES: Record<BadgeTone, string> = {
   info: "border-info-edge bg-info-surface text-info",
 };
 
-export function Badge({ tone, children }: { tone: BadgeTone; children: ReactNode }) {
-  return <span className={`badge ${TONES[tone]}`}>{children}</span>;
+export function Badge({
+  tone,
+  icon,
+  children,
+}: {
+  tone: BadgeTone;
+  /** An optional leading glyph — a drawn icon from components/icons. StockBadge
+   *  uses it for the per-state mark; OrderStatusBadge renders text only. */
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span className={`badge ${TONES[tone]}${icon ? " gap-1.5 [&_svg]:size-3.5" : ""}`}>
+      {icon}
+      {children}
+    </span>
+  );
 }
