@@ -122,16 +122,20 @@ function OrderRow({ order }: { order: Order }) {
         to={`/orders/${order.id}`}
         className="focus-ring surface card-interactive group flex items-center gap-4 p-4 sm:p-5"
       >
-        {/* A stack of the first few items' thumbnails, matching the reference.
-            Order lines carry no image URL from the API, so these are the neutral
-            placeholder for now. */}
+        {/* A stack of the first few items' product images, matching the
+            reference; each falls back to a neutral block when its URL is null. */}
         <div className="flex -space-x-3">
           {order.items.slice(0, 3).map((item) => (
             <span
               key={item.id}
               className="size-14 shrink-0 overflow-hidden rounded-control border-2 border-surface bg-surface-muted"
             >
-              <ProductImage src={null} alt="" className="size-full" fallbackIconClassName="text-base" />
+              <ProductImage
+                src={item.product.imageUrl}
+                alt=""
+                className="size-full"
+                fallbackIconClassName="text-base"
+              />
             </span>
           ))}
         </div>
