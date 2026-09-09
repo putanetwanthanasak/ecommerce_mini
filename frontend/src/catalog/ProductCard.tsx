@@ -56,14 +56,14 @@ export function ProductCard({ product }: { product: Product }) {
         <h2 className="condensed text-row leading-snug font-semibold text-balance text-ink">
           <Link
             to={`/products/${product.id}`}
-            className="outline-none after:absolute after:inset-0 group-hover:text-info"
+            className="outline-none after:absolute after:inset-0 group-hover:text-brand"
           >
             {product.name}
           </Link>
         </h2>
 
         <div className="mt-3 flex items-end justify-between gap-3">
-          <span className="figures text-figure text-ink">{formatPrice(product.price)}</span>
+          <span className="figures text-xl leading-none text-ink">{formatPrice(product.price)}</span>
 
           {/* relative + z-10 lifts this out from under the name link's overlay. */}
           <div className="relative z-10">

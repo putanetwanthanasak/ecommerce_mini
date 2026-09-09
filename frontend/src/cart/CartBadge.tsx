@@ -28,7 +28,7 @@ export function CartBadge() {
           // aria-hidden because the count is already in the link's label above;
           // a screen reader would otherwise read the number twice.
           aria-hidden="true"
-          className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-board px-1.5 py-0.5 text-rail font-semibold text-ink"
+          className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-foreground px-1.5 py-0.5 text-rail font-semibold text-brand"
         >
           {itemCount}
         </span>

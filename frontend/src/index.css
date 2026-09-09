@@ -16,21 +16,25 @@
 @import "@fontsource-variable/plus-jakarta-sans";
 
 /*
- * A LIGHT, WARM-NEUTRAL THEME WITH A PURPLE ACCENT
+ * A LIGHT, WARM-NEUTRAL THEME WITH A PURPLE BRAND COLOUR
  *
  * The canvas is a warm off-white; cards are pure white, lifted off the page by a soft
  * shadow and a hairline border rather than by a shift in tone. Every neutral carries a
- * faint warm hue (60–83) — there are no dead greys. Purple is the single accent colour,
- * spent deliberately on interactive affordance (focus rings, the PAID state, text
- * selection) and nothing decorative.
+ * faint warm hue (60–83) — there are no dead greys.
+ *
+ * Purple (`--color-brand`) is the brand colour and it is used wherever the reference
+ * mockup uses it: primary buttons (add to cart, checkout, place order, auth submits),
+ * the wordmark mark, the cart control, the active category filter, links into a
+ * product, focus rings, and text selection. The earlier "purple is a scoped accent,
+ * nothing decorative" rule was dropped on 2026-09-09 when the project committed to full
+ * parity with the reference — see DESIGN.md.
  *
  * LIGHT MODE ONLY. There is no dark palette here and no `.dark` / prefers-color-scheme
- * branch — this design was authored for one polarity, the same way the theme before it
- * was authored dark-only. A dark rendition would be a separate, deliberate piece of
- * work, not a media-query flip of these values.
+ * branch — this design was authored for one polarity. A dark rendition would be a
+ * separate, deliberate piece of work, not a media-query flip of these values.
  *
- * The role names below (surface, ink, hairline, amber, signal…) are the same ones every
- * component already consumes, so the palette changes by editing values here, not by
+ * The role names below (surface, ink, hairline, brand, amber, signal…) are the same
+ * ones every component consumes, so the palette changes by editing values here, not by
  * rewriting component files.
  */
 @theme {
@@ -95,19 +99,34 @@
   --color-positive-surface: var(--color-signal-surface);
 
   /*
-   * Info is the theme's purple accent. It carries the PAID order state and is the same
-   * hue as --color-focus. A dedicated --color-brand plus a primary-button treatment is
-   * a deliberate follow-up; for now the accent lives on this token.
+   * BRAND — the purple. Primary buttons fill with it, the wordmark mark and the cart
+   * control wear it, the active category filter is filled with it, links into a
+   * product hover to it, and it is the focus + selection colour. One value, matching
+   * the reference mockup's `--primary`.
    */
-  --color-info: oklch(52% 0.17 300);
-  --color-info-edge: oklch(88% 0.05 300);
-  --color-info-surface: oklch(96% 0.025 300);
+  --color-brand: oklch(52% 0.17 300);
+  --color-brand-foreground: oklch(99% 0.005 83); /* near-white label on a brand fill */
+  --color-brand-surface: oklch(96% 0.025 300); /* the mockup's `--accent`: tinted purple wash */
+  --color-brand-edge: oklch(88% 0.05 300);
 
-  /* Purple, matching the accent — focus is an interactive affordance, not a warning. */
-  --color-focus: oklch(52% 0.17 300);
+  /*
+   * Info carries the PAID order state. It is the same purple hue as the brand — the
+   * mockup's PAID badge is `bg-accent` / `accent-foreground`, i.e. the purple family —
+   * kept as its own name so a later change to one doesn't silently move the other.
+   */
+  --color-info: var(--color-brand);
+  --color-info-edge: var(--color-brand-edge);
+  --color-info-surface: var(--color-brand-surface);
 
-  --radius-control: 0.625rem;
-  --radius-panel: 1rem;
+  /* Focus and selection are the brand colour — an interactive affordance, not a warning. */
+  --color-focus: var(--color-brand);
+
+  /*
+   * Radii track the reference: `--radius` 0.875rem there, cards at `rounded-2xl`
+   * (~1.5rem), controls at `rounded-lg`/`rounded-xl`.
+   */
+  --radius-control: 0.875rem;
+  --radius-panel: 1.5rem;
 
   /*
    * TYPE ROLES.

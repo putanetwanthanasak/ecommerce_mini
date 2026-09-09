@@ -27,6 +27,10 @@ export interface CartLine {
   /** Live name and price when loaded, falling back to the snapshot. */
   name: string;
   price: string;
+  /** Live image URL when loaded, falling back to the snapshot, or null. */
+  imageUrl: string | null;
+  /** Live category name — only the re-fetch carries it, null until then. */
+  category: string | null;
   error: unknown;
 }
 
@@ -75,6 +79,8 @@ export function useCartLines(items: CartItem[]): CartLines {
         cap: product.stock,
         name: product.name,
         price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category.name,
         error: null,
       };
     }
@@ -91,6 +97,8 @@ export function useCartLines(items: CartItem[]): CartLines {
         cap: gone ? 0 : item.stock,
         name: item.name,
         price: item.price,
+        imageUrl: item.imageUrl,
+        category: null,
         error: result.error,
       };
     }
@@ -102,6 +110,8 @@ export function useCartLines(items: CartItem[]): CartLines {
       cap: item.stock,
       name: item.name,
       price: item.price,
+      imageUrl: item.imageUrl,
+      category: null,
       error: null,
     };
   });

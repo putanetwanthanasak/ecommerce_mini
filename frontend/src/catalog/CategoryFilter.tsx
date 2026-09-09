@@ -2,17 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { catalogKeys, fetchCategories } from "./catalogApi";
 
 /*
- * A hairline tab strip, not a row of filled pills.
- *
- * Category navigation sits on one underline: each label rests on the hairline, and
- * the active tab is marked by a heavier rule beneath it in ink — not a filled
- * background, and not the purple accent. Keeping it to a plain rule leaves the
- * filter quiet next to the product rows it controls.
+ * A row of filled pills, matching the reference: rounded-full chips, the active
+ * one filled with the brand purple, the rest a hairline outline on white. Each
+ * carries its product count as a faint tabular figure.
  */
 const TAB =
-  "focus-ring condensed -mb-px inline-flex items-baseline gap-1.5 border-b-2 px-1 pb-2 text-meta font-semibold tracking-[0.04em] transition";
-const SELECTED = "border-ink text-ink";
-const UNSELECTED = "border-transparent text-ink-subtle hover:border-edge hover:text-ink-muted";
+  "focus-ring inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-meta font-medium transition-colors";
+const SELECTED = "border-brand bg-brand text-brand-foreground";
+const UNSELECTED =
+  "border-hairline bg-surface text-ink-subtle hover:border-edge hover:text-ink";
 
 interface CategoryFilterProps {
   /** Empty string = "All". */
@@ -63,7 +61,7 @@ export function CategoryFilter({ selectedId, onSelect }: CategoryFilterProps) {
   const totalProducts = categories.reduce((sum, c) => sum + c._count.products, 0);
 
   return (
-    <div className="flex flex-wrap items-end gap-x-5 gap-y-2 border-b border-hairline">
+    <div className="flex flex-wrap gap-2">
       <CategoryTab
         label="All"
         count={totalProducts}
@@ -102,8 +100,11 @@ function CategoryTab({
       className={`${TAB} ${selected ? SELECTED : UNSELECTED}`}
     >
       {label}
-      {/* The count is a figure, so it is set as one. */}
-      <span className="figures text-rail opacity-70">{count}</span>
+      <span
+        className={`text-xs tabular-nums ${selected ? "text-brand-foreground/80" : "text-ink-faint"}`}
+      >
+        {count}
+      </span>
     </button>
   );
 }

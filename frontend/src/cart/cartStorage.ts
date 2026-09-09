@@ -32,7 +32,10 @@ export function loadCart(): CartItem[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isCartItem);
+    // Normalise the optional `imageUrl` so a line stored before that field
+    // existed matches the current type (null, not missing) rather than being
+    // `undefined` at runtime while typed `string | null`.
+    return parsed.filter(isCartItem).map((item) => ({ ...item, imageUrl: item.imageUrl ?? null }));
   } catch {
     // Hand-edited or written by an older build with a different shape. An
     // unreadable cart starts empty rather than crashing every page that reads
@@ -69,6 +72,11 @@ function isCartItem(value: unknown): value is CartItem {
     item.quantity > 0 &&
     typeof item.name === "string" &&
     typeof item.price === "string" &&
-    typeof item.stock === "number"
+    typeof item.stock === "number" &&
+    // Optional: added after the first carts shipped, so a stored line without it
+    // is still valid — the thumbnail just falls back until the re-fetch.
+    (item.imageUrl === undefined ||
+      item.imageUrl === null ||
+      typeof item.imageUrl === "string")
   );
 }

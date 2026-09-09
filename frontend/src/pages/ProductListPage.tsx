@@ -4,7 +4,7 @@ import { AppLayout } from "../components/AppLayout";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBanner } from "../components/ErrorBanner";
-import { FormField } from "../components/FormField";
+import { SearchIcon } from "../components/icons";
 import { catalogKeys, fetchProducts } from "../catalog/catalogApi";
 import { CategoryFilter } from "../catalog/CategoryFilter";
 import { Pagination } from "../components/Pagination";
@@ -190,22 +190,34 @@ export function ProductListPage() {
 
       {/* Filters stay mounted through the loading and error states — losing the
           controls is what turns a failed fetch into a dead end. */}
-      <div className="mt-6 space-y-4">
-        <div className="max-w-sm">
-          <FormField
-            label="Search"
-            name="search"
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="relative max-w-md">
+          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-faint">
+            <SearchIcon />
+          </span>
+          <input
             type="search"
+            name="search"
+            aria-label="Search products by name"
             placeholder="Search products by name"
+            autoComplete="off"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            autoComplete="off"
+            className="focus-ring h-11 w-full rounded-control border border-hairline bg-surface pr-3 pl-9 text-meta text-ink shadow-sm transition placeholder:text-ink-faint"
           />
         </div>
 
         <CategoryFilter selectedId={params.categoryId} onSelect={setCategoryId} />
 
-        {hasFilters && <Button onClick={handleClearFilters}>Clear filters</Button>}
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="focus-ring self-start rounded-control text-meta font-medium text-ink-subtle underline-offset-4 transition hover:text-ink hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="mt-8">{renderResults()}</div>

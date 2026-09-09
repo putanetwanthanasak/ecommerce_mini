@@ -217,10 +217,41 @@ components:
 >
 > The wordmark is renamed **Commerce → Limina** at the same time. It was always
 > flagged as a placeholder; its type treatment (row-scale condensed caps at
-> 0.16em) is unchanged, and an `ink` bag-mark tile now leads it — `ink`, not the
-> accent, so purple stays confined to its three scoped roles.
+> 0.16em) is unchanged.
 >
-> Everything below this line is the earlier direction, unedited.
+> **3 — Full parity with the reference mockup (2026-09-09).** The card grid was a
+> curated, partial match to the reference design at
+> `C:\Users\monja\Documents\product-catalog`; that curation was scoping error on
+> our part. The project has now matched the reference across every page — layout,
+> spacing, iconography, and colour — and the design decisions it contradicts are
+> retired, not preserved:
+>
+> - **Purple is the brand colour, not a scoped accent.** It fills the primary
+>   button everywhere (add to cart, checkout, place order, auth submits), the
+>   wordmark tile, the cart control, and the active category filter, and it is
+>   the product-link hover, focus ring and selection colour. `--color-brand` in
+>   `index.css` is the token. This voids: the **"Reserved Amber Rule"** clause
+>   that amber is "the hover state of a link into a product"; **"Primary: a
+>   printed flap — near-white `ink` fill"** in Buttons; the wordmark "turns amber
+>   on hover" line in Navigation; and **"Don't spend amber on … a button"** as it
+>   applied to the primary action. Amber still means "a figure that can change" —
+>   low stock, a PENDING order — and nothing static.
+> - **Category filters are a row of filled pills**, the active one filled with
+>   the brand purple. This voids **"Category tabs: a hairline tab strip, not a
+>   row of capsules … Never amber"** and the **"Printed Cell Rule"** as it barred
+>   `rounded-full` here.
+> - **Checkout shows a cosmetic shipping + payment form** (address fields, card
+>   number / expiry / CVC) in the reference's two-column layout, with an order
+>   summary in a side panel. It is labelled plainly as taking no payment and
+>   storing no address; a card number ending in `0000` previews a declined state
+>   entirely client-side. **`POST /api/orders` is unchanged — items only, no
+>   price, no address, no card.** This replaces the "no payment UI" framing: the
+>   UI exists, the integration does not, and the copy says so.
+> - Radii, container widths, the icon set, and the empty-state treatment now
+>   follow the reference rather than the board's two small radii.
+>
+> Everything below this line is the earlier direction, retained as the record of
+> where the design started — not a description of what ships.
 
 ---
 
@@ -444,7 +475,7 @@ A `hairline` top rule, prev/next as `sm` secondary buttons disabled at the bound
 
 Recorded as open, not as system rules. A future pass should resolve these rather than inherit them.
 
-- **`--color-brand` + a purple primary button, not yet done.** Purple currently lives only on `--color-info` (PAID badge), `--color-focus` (focus ring) and `::selection` — three scoped roles, no decorative use. The primary button and the wordmark mark are `ink`. Making purple the primary action colour — which is where the light theme is heading — needs its own `--color-brand` token first (so PAID/focus and "primary button" don't share one value), and then a filled-purple `primary` variant in `buttonStyles.ts`, which recolours every primary control in the app at once. It is a deliberate change of its own, called out in `buttonStyles.ts` and the `--color-info` note in `index.css`, and not started.
+- **`--color-brand` + a purple primary button — done (2026-09-09).** `--color-brand` is the token; the `primary` button variant fills with it across the app, and it is the wordmark tile, cart control, active category filter, product-link hover, focus ring and selection colour. `--color-info` (the PAID badge) now aliases `--color-brand` — same value, kept as a separate name. See parity note 3 at the top of this file.
 - **Named-forward ceiling work, not yet built.** No flap carries the horizontal seam that most identifies the medium; figures are set as text rather than in character cells; the board is a 1024px centred panel rather than something read across the window. These are the three moves that would take the world from convincing to unmistakable.
 - **Two `rounded-full` count bubbles survive** the printed-cell rule — the header cart count and the Admin marker on `/account`. They contradict **The Printed Cell Rule** above; the rule is correct and these are the drift.
 - **`/account` is behind the rest of the system.** Its two `<dt>` labels hand-roll the rail's properties instead of using the `rail` utility, and its Admin marker is a pill where `AppLayout` uses a proper badge.

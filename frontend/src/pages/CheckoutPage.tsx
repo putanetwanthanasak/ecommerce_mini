@@ -1,21 +1,35 @@
 import { useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { Button } from "../components/Button";
 import { buttonClass } from "../components/buttonStyles";
 import { EmptyState } from "../components/EmptyState";
-import { ArrowLeftIcon } from "../components/icons";
+import { AlertCircleIcon, ArrowLeftIcon, LockIcon } from "../components/icons";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { FormField } from "../components/FormField";
 import { useCart } from "../cart/cartContext";
 import { catalogKeys, fetchProduct } from "../catalog/catalogApi";
+import { ProductImage } from "../catalog/ProductImage";
 import { formatCents, formatPrice, lineTotalCents, sumCents } from "../lib/money";
 import { toCheckoutProblem, type CheckoutProblem } from "../orders/checkoutError";
 import { createOrder, orderKeys, type Order } from "../orders/ordersApi";
 
+/**
+ * Checkout — the reference's two-column layout: a shipping + payment form on the
+ * left, an order summary on the right.
+ *
+ * THE FORM IS COSMETIC. The backend has no address field and takes no payment;
+ * `POST /api/orders` still receives `{ productId, quantity }` per line and
+ * nothing else (see `mutation` below). The address and card inputs are never
+ * read or sent — the one exception is a client-only convenience: a card number
+ * ending in 0000 previews a declined-payment state and stops the order, exactly
+ * as the reference mock does. Everything else about placing the order — the
+ * in-flight guard, the 409 / 404 / validation handling — is unchanged.
+ */
 export function CheckoutPage() {
-  const { items, isEmpty, setQuantity, removeItem, clear } = useCart();
+  const { items, itemCount, isEmpty, setQuantity, removeItem, clear } = useCart();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -23,14 +37,15 @@ export function CheckoutPage() {
   /** Live stock for the product a 409 named, fetched after the failure. */
   const [liveStock, setLiveStock] = useState<number | null>(null);
 
+  /** Controlled only so the 0000 decline preview can read it. Never sent. */
+  const [card, setCard] = useState("");
+  /** Client-only: the card ended in 0000, so we show the mock declined state. */
+  const [declined, setDeclined] = useState(false);
+
   /*
-   * Belt and braces against a double-click creating two orders.
-   *
-   * The button below is disabled while the mutation is in flight, which is the
-   * real guard — a disabled button fires no click. This ref covers the sliver
-   * before React has re-rendered with `isPending` true, where two clicks can
-   * land in the same batch. An order is not an idempotent thing to get wrong:
-   * the second one would decrement stock again and charge the customer twice.
+   * Belt and braces against a double-click creating two orders. The submit
+   * button is disabled while the mutation is in flight (the real guard); this
+   * ref covers the sliver before React re-renders with `isPending` true.
    */
   const inFlight = useRef(false);
   /** Set once an order exists, so the empty cart below isn't mistaken for "nothing to buy". */
@@ -40,29 +55,22 @@ export function CheckoutPage() {
 
   const mutation = useMutation({
     mutationFn: () =>
-      // Two fields per line and nothing else. No price, no total — the backend
-      // reads both off its own product rows inside the order transaction.
+      // Two fields per line and nothing else. No price, no total, no address,
+      // no card — the backend reads price and stock off its own product rows.
       createOrder({
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       }),
 
     onSuccess: (order: Order) => {
       placed.current = true;
-      // Seed the cache so the confirmation renders the order we already have
-      // instead of showing a spinner while it re-fetches what it was just told.
       queryClient.setQueryData(orderKeys.detail(order.id), order);
-      // Stock moved for every product in this order; anything cached about them
-      // is now wrong.
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       void queryClient.invalidateQueries({ queryKey: ["product"] });
 
       clear();
       // `replace` so Back from the confirmation doesn't land on a checkout page
-      // whose cart has just been emptied.
-      //
-      // `justPlaced` is what tells the order page to show its success banner.
-      // The same route is reached from the history list, where "Order placed"
-      // would be false, so the page cannot infer this from the URL alone.
+      // whose cart has just been emptied. `justPlaced` triggers the order page's
+      // success banner (the same route is reached from history, where it's false).
       navigate(`/orders/${order.id}`, { replace: true, state: { justPlaced: true } });
     },
 
@@ -71,8 +79,6 @@ export function CheckoutPage() {
       setProblem(next);
       setLiveStock(null);
 
-      // A 409 tells us which product ran out but not how much is left. Ask, so
-      // the fix can be "reduce to 1" instead of "try a smaller number".
       if (next.kind === "stock" && next.productId) {
         const productId = next.productId;
         const fresh = await queryClient
@@ -91,11 +97,25 @@ export function CheckoutPage() {
     },
   });
 
-  function handleConfirm() {
+  function placeOrder() {
     if (inFlight.current || mutation.isPending) return;
     inFlight.current = true;
     setProblem(null);
     mutation.mutate();
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setDeclined(false);
+
+    // Client-only decline preview, matching the reference. A card ending in 0000
+    // never reaches the order call.
+    if (card.replace(/\D/g, "").endsWith("0000") && card.replace(/\D/g, "").length >= 4) {
+      setDeclined(true);
+      return;
+    }
+
+    placeOrder();
   }
 
   if (isEmpty) {
@@ -105,14 +125,14 @@ export function CheckoutPage() {
     if (placed.current) return null;
 
     return (
-      <AppLayout>
-        <h1 className="condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Checkout</h1>
-        <div className="mt-8">
+      <AppLayout size="5xl">
+        <h1 className="condensed text-title font-bold tracking-tight text-ink">Checkout</h1>
+        <div className="mt-10">
           <EmptyState
             title="There's nothing to check out"
-            message="Your cart is empty."
+            message="Your cart is empty, so there's nothing to pay for yet."
             action={
-              <Link to="/products" className={buttonClass()}>
+              <Link to="/products" className={buttonClass({ variant: "primary" })}>
                 Browse products
               </Link>
             }
@@ -123,67 +143,136 @@ export function CheckoutPage() {
   }
 
   return (
-    <AppLayout>
-      <Link to="/cart" className="focus-ring inline-flex items-center gap-1.5 rounded-control text-meta text-ink-subtle transition hover:text-ink">
+    <AppLayout size="5xl">
+      <Link
+        to="/cart"
+        className="focus-ring inline-flex items-center gap-1.5 rounded-control text-meta font-medium text-ink-subtle transition hover:text-ink"
+      >
         <ArrowLeftIcon /> Back to cart
       </Link>
 
-      <h1 className="mt-6 condensed text-row font-bold tracking-[0.14em] text-ink uppercase">Checkout</h1>
+      <h1 className="condensed mt-4 text-title font-bold tracking-tight text-ink">Checkout</h1>
 
-      {problem && (
-        <div className="mt-6">
-          <CheckoutProblemNotice
-            problem={problem}
-            liveStock={liveStock}
-            error={mutation.error}
-            onReduce={(productId, quantity) => {
-              setQuantity(productId, quantity);
-              setProblem(null);
-            }}
-            onRemove={(productId) => {
-              removeItem(productId);
-              setProblem(null);
-            }}
-          />
-        </div>
-      )}
-
-      <ul className="surface mt-6 divide-y divide-hairline">
-        {items.map((item) => (
-          <li key={item.productId} className="flex items-center gap-4 px-5 py-4">
-            <div className="min-w-40 flex-1">
-              <p className="text-meta font-medium text-ink">{item.name}</p>
-              <p className="mt-0.5 text-meta text-ink-subtle">
-                <span className="figures">{formatPrice(item.price)}</span> × {item.quantity}
-              </p>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8" noValidate>
+          {declined && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-control border border-critical-edge bg-critical-surface p-4 text-meta text-critical"
+            >
+              <span className="mt-0.5 shrink-0 text-base">
+                <AlertCircleIcon />
+              </span>
+              <div>
+                <p className="font-semibold">Payment failed</p>
+                <p className="mt-0.5">
+                  Your card was declined. Check the details or try a different card.
+                </p>
+              </div>
             </div>
-            <div className="figures text-meta text-ink">
-              {formatCents(lineTotalCents(item.price, item.quantity))}
+          )}
+
+          {problem && (
+            <CheckoutProblemNotice
+              problem={problem}
+              liveStock={liveStock}
+              error={mutation.error}
+              onReduce={(productId, quantity) => {
+                setQuantity(productId, quantity);
+                setProblem(null);
+              }}
+              onRemove={(productId) => {
+                removeItem(productId);
+                setProblem(null);
+              }}
+            />
+          )}
+
+          <section className="flex flex-col gap-4">
+            <h2 className="condensed text-row font-bold text-ink">Shipping address</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="First name" name="firstName" defaultValue="Alex" autoComplete="given-name" />
+              <FormField label="Last name" name="lastName" defaultValue="Rivera" autoComplete="family-name" />
             </div>
-          </li>
-        ))}
+            <FormField label="Street address" name="address" placeholder="123 Maker St" autoComplete="street-address" />
+            <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
+              <FormField label="City" name="city" placeholder="Portland" autoComplete="address-level2" />
+              <FormField label="ZIP" name="zip" placeholder="97201" autoComplete="postal-code" />
+            </div>
+          </section>
 
-        <li className="flex items-center justify-between gap-4 bg-surface-sunken px-5 py-4">
-          <span className="text-meta font-medium text-ink-muted">Total</span>
-          <span className="figures text-figure text-ink">{formatCents(totalCents)}</span>
-        </li>
-      </ul>
+          <section className="flex flex-col gap-4">
+            <h2 className="condensed text-row font-bold text-ink">Payment</h2>
+            <FormField
+              label="Card number"
+              name="card"
+              placeholder="4242 4242 4242 4242"
+              inputMode="numeric"
+              autoComplete="cc-number"
+              value={card}
+              onChange={(e) => setCard(e.target.value)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Expiry" name="expiry" placeholder="MM / YY" autoComplete="cc-exp" />
+              <FormField label="CVC" name="cvc" placeholder="123" inputMode="numeric" autoComplete="cc-csc" />
+            </div>
+            <p className="text-xs leading-relaxed text-ink-faint">
+              No payment is taken and no address is stored — these fields preview a real
+              checkout. A card number ending in 0000 shows the declined state; otherwise your
+              order is placed from the cart items only, and the card and address are never sent.
+            </p>
+          </section>
 
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-4">
-        {/*
-          Disabled while the request is in flight, and that is load-bearing: the
-          backend has no idempotency key, so two identical POSTs create two
-          orders and decrement stock twice. This button plus the inFlight ref is
-          the only thing preventing a double-click from doing that.
-        */}
-        <Button variant="primary" onClick={handleConfirm} disabled={mutation.isPending}>
-          {mutation.isPending ? "Placing order…" : "Place order"}
-        </Button>
+          {/*
+            Disabled while the request is in flight, and that is load-bearing:
+            the backend has no idempotency key, so two identical POSTs create two
+            orders and decrement stock twice. This button plus the inFlight ref
+            is the only thing preventing a double-click from doing that.
+          */}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={mutation.isPending}
+            className="sm:w-fit"
+          >
+            <LockIcon />
+            {mutation.isPending ? "Placing order…" : "Place order"}
+          </Button>
+        </form>
+
+        <aside className="surface h-fit p-6 lg:sticky lg:top-6">
+          <h2 className="condensed text-row font-bold text-ink">
+            Order summary{" "}
+            <span className="text-meta font-medium text-ink-subtle">({itemCount})</span>
+          </h2>
+
+          <ul className="mt-4 flex flex-col gap-3">
+            {items.map((item) => (
+              <li key={item.productId} className="flex items-center gap-3">
+                <ProductImage
+                  src={item.imageUrl}
+                  alt=""
+                  className="size-12 shrink-0 rounded-control"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-meta font-medium text-ink">{item.name}</p>
+                  <p className="text-xs text-ink-subtle">
+                    Qty {item.quantity} · {formatPrice(item.price)}
+                  </p>
+                </div>
+                <span className="figures shrink-0 text-meta text-ink">
+                  {formatCents(lineTotalCents(item.price, item.quantity))}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 flex items-center justify-between border-t border-hairline pt-4">
+            <span className="condensed font-bold text-ink">Total</span>
+            <span className="figures text-row text-ink">{formatCents(totalCents)}</span>
+          </div>
+        </aside>
       </div>
-
-      <p className="mt-4 text-right text-rail text-ink-faint">
-        The server confirms every price and stock level when the order is placed.
-      </p>
     </AppLayout>
   );
 }
@@ -208,8 +297,6 @@ function CheckoutProblemNotice({
   onRemove: (productId: string) => void;
 }) {
   if (problem.kind === "stock") {
-    // Bound to a const so the narrowing survives into the click handlers below
-    // — TypeScript drops it for a parameter's property inside a closure.
     const productId = problem.productId;
 
     return (
@@ -289,8 +376,6 @@ function CheckoutProblemNotice({
   }
 
   if (problem.kind === "session") {
-    // apiRequest already ended the session and ProtectedRoute is on its way to
-    // /login. The one thing worth saying is that the cart isn't lost with it.
     return (
       <Notice tone="caution" title="Your session expired before the order went through">
         <p>Sign in again — your cart is saved and nothing was ordered.</p>
@@ -299,14 +384,9 @@ function CheckoutProblemNotice({
   }
 
   /*
-   * Anything unclassified is a plain message, which is exactly what ErrorBanner
-   * renders. No second copy of that markup.
-   *
-   * Note the absent `onRetry`. ErrorBanner can offer a one-click retry and the
-   * read-only pages use it, but placing an order is not a safe thing to fire
-   * again from a banner: POST /api/orders has no idempotency key, so retrying a
-   * request that actually succeeded would place a second order. The Place order
-   * button below, with its in-flight guard, stays the only way to try again.
+   * Anything unclassified is a plain message, which is what ErrorBanner renders.
+   * Note the absent `onRetry`: placing an order is not safe to fire again from a
+   * banner (no idempotency key), so the Place order button stays the only retry.
    */
   return <ErrorBanner error={error} />;
 }
@@ -334,11 +414,8 @@ function Notice({
 }
 
 /**
- * A control sitting on one of the tinted Notice panels above.
- *
- * The `on-color` variant borrows the panel's own text colour through
- * currentColor rather than naming a hue, so one definition works on the red
- * and amber notices alike.
+ * A control sitting on one of the tinted Notice panels above. The `on-color`
+ * variant borrows the panel's own text colour through currentColor.
  */
 function NoticeButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (

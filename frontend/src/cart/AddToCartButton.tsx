@@ -1,55 +1,63 @@
+import { useState } from "react";
 import type { MouseEvent } from "react";
 import type { Product } from "../catalog/catalogApi";
 import { Button } from "../components/Button";
+import { BanIcon, CheckIcon, ShoppingCartIcon } from "../components/icons";
 import { useCart } from "./cartContext";
 
 /**
- * The one add-to-cart control, used from the grid card and the detail page.
+ * The add-to-cart control on a catalog card, matching the reference: a primary
+ * (brand) button that flips to "Added" for a beat after a click, and a disabled
+ * "Sold out" secondary button with a Ban icon when stock is gone.
  *
- * Both surfaces add a single unit; quantity is edited on the cart page. That
- * keeps one rule for what a click does — clicking twice adds two, wherever you
- * click — instead of a stepper on one page and a plain button on the other.
+ * Adds a single unit — quantity is chosen on the product detail page
+ * (ProductPurchase) and edited in the cart. `addItem` caps at live stock, so
+ * clicking past the limit is a harmless no-op.
+ *
+ * On the card this sits inside the stretched title-link overlay, so the click is
+ * stopped from also navigating to the product.
  */
-export function AddToCartButton({ product, size = "md" }: { product: Product; size?: "sm" | "md" }) {
-  const { addItem, quantityOf } = useCart();
-
-  const inCart = quantityOf(product.id);
+export function AddToCartButton({
+  product,
+  size = "md",
+}: {
+  product: Product;
+  size?: "sm" | "md";
+}) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
   const soldOut = product.stock <= 0;
-  // Everything in stock is already claimed by this cart. Letting the count go
-  // past it would build an order that is guaranteed to come back 409.
-  const atStockLimit = !soldOut && inCart >= product.stock;
-  const disabled = soldOut || atStockLimit;
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
-    // On the grid, this button sits inside a card whose title link covers the
-    // whole tile. Without this, adding to the cart also navigates away from the
-    // list the user was scanning.
     event.preventDefault();
     event.stopPropagation();
     addItem(product);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1400);
+  }
+
+  if (soldOut) {
+    return (
+      <Button variant="secondary" size={size} disabled aria-disabled="true">
+        <BanIcon />
+        Sold out
+      </Button>
+    );
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-      {/*
-        KNOWN GAP, left for `adapt` rather than fixed here: on the grid this
-        renders at `sm`, which is about 30px tall and under the 44px a thumb
-        needs — inside a card whose title link covers the whole tile, so a
-        mis-tap navigates away instead of doing nothing. Raising it is not a
-        one-word change: the button also needs real separation from that
-        overlay, and the successful add needs an announcement that is not a
-        badge in a header the user has already scrolled past.
-      */}
-      <Button variant="primary" size={size} onClick={handleClick} disabled={disabled}>
-        {soldOut ? "Out of stock" : inCart > 0 ? "Add another" : "Add to cart"}
-      </Button>
-
-      {inCart > 0 && (
-        <span className="text-rail text-ink-subtle">
-          {inCart} in cart
-          {atStockLimit && " · all we have"}
-        </span>
+    <Button variant="primary" size={size} onClick={handleClick}>
+      {added ? (
+        <>
+          <CheckIcon />
+          Added
+        </>
+      ) : (
+        <>
+          <ShoppingCartIcon />
+          Add to cart
+        </>
       )}
-    </div>
+    </Button>
   );
 }
