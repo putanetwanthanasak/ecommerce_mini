@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import request from "supertest";
 import app from "../app";
@@ -28,6 +29,7 @@ afterEach(async () => {
     where: { OR: [{ productId: { in: productIds } }, { order: { userId: { in: userIds } } }] },
   });
   await prisma.order.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.idempotencyKey.deleteMany({ where: { userId: { in: userIds } } });
   await prisma.product.deleteMany({ where: { id: { in: productIds } } });
   productIds.length = 0;
 });
@@ -46,10 +48,14 @@ async function seedProduct(stock: number, price: number | string = 39.99) {
   return id;
 }
 
-function placeOrder(user: TestUser, productId: string, quantity: number) {
+// POST /api/orders now requires an Idempotency-Key header. Each call gets a fresh
+// UUID by default so ordinary tests are unaffected; the idempotency tests below
+// pass an explicit key to exercise reuse.
+function placeOrder(user: TestUser, productId: string, quantity: number, idempotencyKey = randomUUID()) {
   return request(app)
     .post("/api/orders")
     .set("Authorization", `Bearer ${user.token}`)
+    .set("Idempotency-Key", idempotencyKey)
     .send({ items: [{ productId, quantity }] });
 }
 
@@ -105,6 +111,130 @@ describe("POST /api/orders", () => {
       where: { userId: { in: [customerA.id, customerB.id] } },
     });
     expect(orderCount).toBe(1);
+  });
+});
+
+describe("POST /api/orders — idempotency", () => {
+  it("rejects a request with no Idempotency-Key header and writes nothing", async () => {
+    const productId = await seedProduct(5);
+
+    const res = await request(app)
+      .post("/api/orders")
+      .set("Authorization", `Bearer ${customerA.token}`)
+      .send({ items: [{ productId, quantity: 1 }] });
+
+    expect(res.status).toBe(400);
+    expect(await getStock(productId)).toBe(5);
+    expect(await prisma.order.count({ where: { userId: customerA.id } })).toBe(0);
+  });
+
+  it("rejects an Idempotency-Key that isn't a UUID", async () => {
+    const productId = await seedProduct(5);
+
+    const res = await request(app)
+      .post("/api/orders")
+      .set("Authorization", `Bearer ${customerA.token}`)
+      .set("Idempotency-Key", "not-a-uuid")
+      .send({ items: [{ productId, quantity: 1 }] });
+
+    expect(res.status).toBe(400);
+    expect(await prisma.order.count({ where: { userId: customerA.id } })).toBe(0);
+  });
+
+  it("collapses two identical concurrent requests with the same key into one order", async () => {
+    // The idempotency counterpart of the concurrent-stock test. Two requests
+    // race on the (userId, key) unique index inside the order transaction: the
+    // first to INSERT wins and creates the order, the other gets P2002 once the
+    // winner commits and replays the winner's stored response. Exactly one order,
+    // one decrement, identical bodies — no matter which one lands first.
+    const productId = await seedProduct(5);
+    const key = randomUUID();
+
+    const [first, second] = await Promise.all([
+      placeOrder(customerA, productId, 2, key),
+      placeOrder(customerA, productId, 2, key),
+    ]);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(first.body.order.id).toBe(second.body.order.id);
+    // The replay is the stored response re-serialised — byte-identical.
+    expect(second.body).toEqual(first.body);
+
+    expect(await prisma.order.count({ where: { userId: customerA.id } })).toBe(1);
+    expect(await getStock(productId)).toBe(3);
+    expect(await prisma.idempotencyKey.count({ where: { userId: customerA.id, key } })).toBe(1);
+  });
+
+  it("replays the first response for a sequential retry with the same key", async () => {
+    const productId = await seedProduct(10);
+    const key = randomUUID();
+
+    const first = await placeOrder(customerA, productId, 3, key);
+    expect(first.status).toBe(201);
+    expect(await getStock(productId)).toBe(7);
+
+    const retry = await placeOrder(customerA, productId, 3, key);
+    expect(retry.status).toBe(201);
+    expect(retry.body).toEqual(first.body);
+
+    // The retry placed nothing new.
+    expect(await getStock(productId)).toBe(7);
+    expect(await prisma.order.count({ where: { userId: customerA.id } })).toBe(1);
+  });
+
+  it("ignores a changed body on a reused key and replays the original order", async () => {
+    // DOCUMENTED CHOICE: same key + different (but valid) body => the original
+    // response is replayed, the new body is ignored. The key identifies the
+    // operation; once it has a committed result, that result stands, because the
+    // guarantee is that no retry can create a second order. (A syntactically
+    // invalid body is still rejected 400 by the schema before this point.)
+    const productId = await seedProduct(10);
+    const key = randomUUID();
+
+    const first = await placeOrder(customerA, productId, 2, key);
+    expect(first.status).toBe(201);
+    expect(await getStock(productId)).toBe(8);
+
+    const second = await placeOrder(customerA, productId, 5, key);
+    expect(second.status).toBe(201);
+    expect(second.body.order.id).toBe(first.body.order.id);
+    expect(second.body.order.items[0].quantity).toBe(2);
+    expect(Number(second.body.order.totalPrice)).toBe(Number(first.body.order.totalPrice));
+
+    // Only the original quantity was ever taken from stock.
+    expect(await getStock(productId)).toBe(8);
+    expect(await prisma.order.count({ where: { userId: customerA.id } })).toBe(1);
+  });
+
+  it("scopes keys per user: the same key value from another customer is independent", async () => {
+    const productId = await seedProduct(10);
+    const key = randomUUID();
+
+    const a = await placeOrder(customerA, productId, 1, key);
+    const b = await placeOrder(customerB, productId, 1, key);
+
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    // Same key string, different users => two distinct orders.
+    expect(a.body.order.id).not.toBe(b.body.order.id);
+    expect(await getStock(productId)).toBe(8);
+    expect(await prisma.order.count({ where: { userId: { in: [customerA.id, customerB.id] } } })).toBe(2);
+  });
+
+  it("lets a key be reused after the first attempt failed and rolled back", async () => {
+    // A failed attempt records nothing (the claim rolls back with the order), so
+    // the same key is free to carry a genuine retry.
+    const productId = await seedProduct(1);
+    const key = randomUUID();
+
+    const tooBig = await placeOrder(customerA, productId, 5, key);
+    expect(tooBig.status).toBe(409);
+    expect(await prisma.idempotencyKey.count({ where: { userId: customerA.id, key } })).toBe(0);
+
+    const retry = await placeOrder(customerA, productId, 1, key);
+    expect(retry.status).toBe(201);
+    expect(await getStock(productId)).toBe(0);
   });
 });
 

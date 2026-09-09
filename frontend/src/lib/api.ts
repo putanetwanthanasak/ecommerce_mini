@@ -84,16 +84,24 @@ export interface RequestOptions {
    * second like the first would be harmless-looking and wrong.
    */
   auth?: boolean;
+  /**
+   * Extra request headers. Used by checkout to send `Idempotency-Key` — see
+   * ordersApi.createOrder. Merged after Content-Type and Authorization, so it
+   * can't clobber auth by accident.
+   */
+  headers?: Record<string, string>;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, auth = true } = options;
+  const { method = "GET", body, auth = true, headers: extraHeaders } = options;
 
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   const token = auth ? getStoredToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (extraHeaders) Object.assign(headers, extraHeaders);
 
   let response: Response;
   try {

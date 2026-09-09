@@ -7,6 +7,25 @@ import { HttpError } from "../utils/httpError";
 
 const router = Router();
 
+// POST /api/orders requires this header — a UUID the client generates once per
+// checkout attempt and reuses across retries. It is rejected as ordinary bad
+// input (400) when missing or malformed; see the invariant in CLAUDE.md for why
+// it is mandatory rather than optional.
+const idempotencyKeySchema = z
+  .string({ error: "Idempotency-Key header is required and must be a UUID" })
+  .uuid("Idempotency-Key header is required and must be a UUID");
+
+// Thrown from inside the order transaction when the idempotency key was already
+// claimed by an earlier (committed) request. It is control flow, not an error:
+// the handler catches it, loads the stored response and replays it verbatim, so
+// a retry is indistinguishable from the original call.
+class IdempotencyReplay extends Error {
+  constructor() {
+    super("Idempotency-Key already used");
+    this.name = "IdempotencyReplay";
+  }
+}
+
 const createOrderSchema = z.object({
   // Note there is no `price` field here on purpose — see the comment in POST /.
   items: z
@@ -48,12 +67,39 @@ const orderInclude = {
 
 // POST /api/orders — any authenticated user places an order for themselves
 router.post("/", requireAuth, async (req, res, next) => {
+  // Hoisted so the IdempotencyReplay branch in catch can reuse them without
+  // re-reading/re-validating. Both are assigned before anything can throw an
+  // IdempotencyReplay (that only comes from inside the transaction below).
+  let idempotencyKey = "";
+  const userId = req.user!.userId;
   try {
+    // A check is not a lock (invariant 1), and neither is a pre-flight SELECT for
+    // an existing key: two racing retries would both read "no such key" and both
+    // place an order. The real guard is the `(userId, key)` unique index, claimed
+    // as the FIRST write inside the order transaction below. This parse only
+    // rejects a missing/!UUID header as ordinary bad input (400).
+    idempotencyKey = idempotencyKeySchema.parse(req.header("Idempotency-Key"));
     const { items } = createOrderSchema.parse(req.body);
-    const userId = req.user!.userId;
 
     const order = await prisma.$transaction(
       async (tx) => {
+        // Claim the key before touching any product row. If an earlier request
+        // for this (userId, key) already committed, this INSERT hits the unique
+        // index and throws P2002 — we turn that into an IdempotencyReplay and the
+        // catch block replays the stored response. A concurrent retry that has
+        // NOT committed yet blocks here on the index and then either replays (the
+        // other one committed) or proceeds (the other one rolled back, leaving no
+        // row). Claiming first means the loser bails before locking stock — the
+        // same "fold the guard into the write" discipline as the decrement below.
+        try {
+          await tx.idempotencyKey.create({ data: { key: idempotencyKey, userId } });
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+            throw new IdempotencyReplay();
+          }
+          throw err;
+        }
+
         const lineItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];
         let totalPrice = new Prisma.Decimal(0);
 
@@ -125,7 +171,7 @@ router.post("/", requireAuth, async (req, res, next) => {
           });
         }
 
-        return tx.order.create({
+        const created = await tx.order.create({
           data: {
             user: { connect: { id: userId } },
             status: "PENDING",
@@ -134,6 +180,22 @@ router.post("/", requireAuth, async (req, res, next) => {
           },
           include: orderInclude,
         });
+
+        // Record the response against the key IN THIS TRANSACTION, so it commits
+        // atomically with the order. A committed key row therefore always carries
+        // the response of a committed order — a retry can never see a claimed key
+        // with no result — and a rolled-back attempt (insufficient stock, missing
+        // product) leaves no row at all, so it is genuinely retryable.
+        //
+        // Stored as the exact bytes `res.json({ order })` would send: JSON.stringify
+        // renders Decimal as a string (Decimal.prototype.toJSON) and Date as ISO,
+        // matching the live response and invariant 7. Replayed verbatim below.
+        await tx.idempotencyKey.update({
+          where: { userId_key: { userId, key: idempotencyKey } },
+          data: { responseStatus: 201, responseBody: JSON.stringify({ order: created }) },
+        });
+
+        return created;
       },
       // A multi-item order does several round trips and may sit waiting on a row
       // lock held by a racing order; the 5s default is tight for that.
@@ -147,6 +209,29 @@ router.post("/", requireAuth, async (req, res, next) => {
 
     res.status(201).json({ order });
   } catch (err) {
+    if (err instanceof IdempotencyReplay) {
+      // The key was already used by a committed request. Its stored response is
+      // now visible; replay it so a retry is indistinguishable from the original
+      // — including a retry that sends a DIFFERENT body. The key identifies the
+      // operation; once it has a result, that result stands, because the whole
+      // point is that no retry can produce a second order. (Storing a body hash
+      // to reject a mismatched retry outright is a possible future hardening.)
+      const stored = await prisma.idempotencyKey.findUnique({
+        where: { userId_key: { userId, key: idempotencyKey } },
+      });
+      if (stored?.responseStatus != null && stored.responseBody != null) {
+        // Send the stored bytes as-is — not res.json(), which would re-stringify.
+        return res
+          .status(stored.responseStatus)
+          .type("application/json")
+          .send(stored.responseBody);
+      }
+      // Unreachable while the claim and the response commit in one transaction:
+      // a visible row always has a response. Guard anyway rather than serve null.
+      return res
+        .status(409)
+        .json({ error: "A request with this Idempotency-Key is still being processed" });
+    }
     next(err);
   }
 });

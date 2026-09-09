@@ -21,12 +21,13 @@ import { createOrder, orderKeys, type Order } from "../orders/ordersApi";
  * left, an order summary on the right.
  *
  * THE FORM IS COSMETIC. The backend has no address field and takes no payment;
- * `POST /api/orders` still receives `{ productId, quantity }` per line and
- * nothing else (see `mutation` below). The address and card inputs are never
- * read or sent — the one exception is a client-only convenience: a card number
- * ending in 0000 previews a declined-payment state and stops the order, exactly
- * as the reference mock does. Everything else about placing the order — the
- * in-flight guard, the 409 / 404 / validation handling — is unchanged.
+ * `POST /api/orders` still receives `{ productId, quantity }` per line (plus an
+ * `Idempotency-Key` header, see below) and nothing else. The address and card
+ * inputs are never read or sent — the one exception is a client-only
+ * convenience: a card number ending in 0000 previews a declined-payment state
+ * and stops the order, exactly as the reference mock does. Everything else about
+ * placing the order — the in-flight guard, the 409 / 404 / validation handling —
+ * is unchanged.
  */
 export function CheckoutPage() {
   const { items, itemCount, isEmpty, setQuantity, removeItem, clear } = useCart();
@@ -43,9 +44,21 @@ export function CheckoutPage() {
   const [declined, setDeclined] = useState(false);
 
   /*
-   * Belt and braces against a double-click creating two orders. The submit
-   * button is disabled while the mutation is in flight (the real guard); this
-   * ref covers the sliver before React re-renders with `isPending` true.
+   * One idempotency key per visit to this page. `useState`'s lazy initialiser
+   * runs it once on mount; every retry from here — a re-click, or the mutation
+   * firing again after an inline fix — reuses it, so the backend treats them as
+   * the same attempt and never places a second order. Leaving /checkout and
+   * coming back re-mounts this component and mints a new key, which is correct:
+   * that is a genuinely new attempt.
+   */
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+
+  /*
+   * Belt and braces against a double-click. The submit button is disabled while
+   * the mutation is in flight and this ref covers the sliver before React
+   * re-renders with `isPending` true — but the real guarantee against a
+   * duplicate order now lives server-side, keyed on `idempotencyKey` above.
+   * This just spares the user a pointless second round trip.
    */
   const inFlight = useRef(false);
   /** Set once an order exists, so the empty cart below isn't mistaken for "nothing to buy". */
@@ -57,9 +70,11 @@ export function CheckoutPage() {
     mutationFn: () =>
       // Two fields per line and nothing else. No price, no total, no address,
       // no card — the backend reads price and stock off its own product rows.
-      createOrder({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-      }),
+      // The idempotency key rides in a header (see createOrder).
+      createOrder(
+        { items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })) },
+        idempotencyKey
+      ),
 
     onSuccess: (order: Order) => {
       placed.current = true;
@@ -224,10 +239,10 @@ export function CheckoutPage() {
           </section>
 
           {/*
-            Disabled while the request is in flight, and that is load-bearing:
-            the backend has no idempotency key, so two identical POSTs create two
-            orders and decrement stock twice. This button plus the inFlight ref
-            is the only thing preventing a double-click from doing that.
+            Disabled while the request is in flight. The backend now dedupes on
+            the Idempotency-Key header (a duplicate POST returns the first order,
+            it does not place a second), so this is a UX guard, not the safety
+            mechanism — it stops a double-click from firing a wasted round trip.
           */}
           <Button
             type="submit"
@@ -385,8 +400,10 @@ function CheckoutProblemNotice({
 
   /*
    * Anything unclassified is a plain message, which is what ErrorBanner renders.
-   * Note the absent `onRetry`: placing an order is not safe to fire again from a
-   * banner (no idempotency key), so the Place order button stays the only retry.
+   * Note the absent `onRetry`: re-submitting is safe now (the Place order button
+   * reuses one idempotency key per visit, so a retry can't double up), but that
+   * button already IS the retry — a second "try again" control on the banner
+   * would just be a competing affordance for the same action.
    */
   return <ErrorBanner error={error} />;
 }

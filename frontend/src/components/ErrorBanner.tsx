@@ -16,13 +16,14 @@ interface ErrorBannerProps {
    * again", and making the user hunt for a way to do that is what turns a
    * blip into a dead end.
    *
-   * Deliberately optional, because retrying is not universally safe or
-   * meaningful:
+   * Deliberately optional, because a retry button is not always the right
+   * affordance:
    *   - a failed login is retried by correcting the form and submitting it,
    *     so the submit button already is the retry;
-   *   - a failed POST /api/orders must NOT get a one-click retry. The backend
-   *     has no idempotency key, so a retry that actually succeeded the first
-   *     time places a second order (see CLAUDE.md, frontend invariant 11).
+   *   - checkout omits it too: the Place order button is the retry (it reuses
+   *     one Idempotency-Key per visit, so re-submitting can't double up — see
+   *     CLAUDE.md, frontend invariant 11), and a second control on the banner
+   *     would just compete with it.
    * Omit it in those cases rather than wiring it up to something clever.
    */
   onRetry?: () => void;
