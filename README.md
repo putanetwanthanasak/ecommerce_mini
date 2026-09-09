@@ -1,226 +1,196 @@
-# E-commerce Mini Platform
+# Limina
 
-A full-stack store — Express + Prisma + PostgreSQL API, React SPA — built to prove that the hard
-parts of a transaction are actually handled: stock that cannot be oversold under concurrent
-checkout, orders that survive a price change, and authorization that holds at the row level.
+A full-stack store — **Express + Prisma + PostgreSQL** API with a **React** SPA — built as a
+backend-engineering exercise. The catalog and checkout are the demo; the point is the transaction
+underneath it: stock that can't be oversold by concurrent checkouts, orders that stay truthful after
+a price change, checkout that's safe to retry, and authorization enforced at the row level. Every
+claim below is enforced in code **and covered by a test**, not asserted in a comment.
 
-![CI](https://github.com/putanetwanthanasak/ecommerce_mini/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/putanetwanthanasak/ecommerce_mini/actions/workflows/ci.yml/badge.svg)](https://github.com/putanetwanthanasak/ecommerce_mini/actions/workflows/ci.yml)
 
 ## Live demo
 
-**https://ecommerce-mini-lyart.vercel.app**
-
-> **The first request can take 30–50 seconds.** The API is on Render's free tier, which stops the
-> container after ~15 minutes idle. The login form says so rather than appearing frozen — the
-> request will go through, so don't reload. Everything after it is fast.
-
-**Register an account to sign in** — email, password, name, about five seconds. There are
-deliberately no shared demo credentials: checkout decrements real stock, so a public login would
-leave the catalog sold out for the next visitor. The catalog sits behind the auth gate, so
-registering is the way in.
-
-## Stack
-
 | | |
 |---|---|
-| **API** | Node 22, TypeScript 5.7, Express 5, Prisma 6, Zod 4 |
-| **Database** | PostgreSQL 17 (Supabase), `Decimal(10,2)` for money |
-| **Auth** | JWT + bcrypt |
-| **Tests** | Vitest + Supertest — 21 tests, run in CI on every push |
-| **Frontend** | React 19, Vite 8, Tailwind 4, React Router 7, TanStack Query 5 |
-| **Deploy** | API on Render, SPA on Vercel, database on Supabase |
+| **Frontend** | https://ecommerce-mini-lyart.vercel.app |
+| **API** | https://ecommerce-backend-7u06.onrender.com — health check `/health` |
 
-Two independent apps in one repo (`backend/`, `frontend/`), each with its own `package.json`. No
-root manifest, no workspace tool.
+> **The first request can take 30–50 seconds.** The API is on Render's free tier, which stops the
+> container after ~15 minutes idle. It is not broken — the app says so instead of hanging, and the
+> request completes. Everything after it is fast.
 
-## The engineering problems this solves
-
-Every reader has seen an e-commerce CRUD app. These are the parts that are hard — each enforced in
-code and covered by a test, not claimed in a comment. Deep version:
-**[backend/CODE_GUIDE.md](backend/CODE_GUIDE.md)**.
-
-### Overselling under concurrent checkout
-
-A transaction alone is **not** sufficient. Prisma runs at `READ COMMITTED`, so two transactions can
-both read `stock = 1`, both pass an `if (product.stock < quantity)` check, and both decrement —
-stock lands at `-1` with two orders sold. The check gives a good error message; it is not a lock.
-
-Safety comes from folding the condition *into* the write:
-
-```ts
-const claimed = await tx.product.updateMany({
-  where: { id: item.productId, stock: { gte: item.quantity } },
-  data:  { stock: { decrement: item.quantity } },
-});
-if (claimed.count === 0) throw new HttpError(409, `Insufficient stock for ${product.name}`);
-```
-
-`updateMany` is used for a logically single-row update precisely because it returns a match count —
-zero means another transaction won the race, and the throw rolls the order back. The test
-`"never oversells under concurrency: two requests for the last unit"` seeds `stock = 1`, fires two
-orders through `Promise.all`, and asserts the statuses are exactly `[201, 409]` and final stock is
-`0`. (Code guide §9, §10 *…but a check is not a lock*.)
-
-### Deadlock prevention through sorted lock acquisition
-
-With multiple product rows locked per order, two concurrent orders touching the same products in
-opposite order deadlock; Postgres kills one and the client sees a 500. Every path that updates
-multiple product rows sorts by `productId` first, so all transactions take locks in the same global
-order and queue instead of colliding. Measured over **40 concurrent two-item orders**:
-
-| | Succeeded | Deadlocked |
-|---|---|---|
-| Without the sort | 8 | 32 |
-| With the sort | **40** | **0** |
-
-A lock-ordering guarantee honoured by only part of a codebase isn't a guarantee, so the order and
-cancel paths both sort. (Code guide §10 *Lock rows in a globally consistent order*.)
-
-### Idempotent order creation
-
-`POST /api/orders` requires an `Idempotency-Key` header (a UUID, generated once per checkout attempt
-and reused across retries). The order transaction's first write claims that key on a
-`@@unique([userId, key])` index; a concurrent or network-level retry loses that race, and once the
-winner commits the loser replays the winner's stored response instead of placing a second order and
-decrementing stock twice. The claim is a guarded write, not a pre-flight `SELECT` — the same reason
-the stock check is folded into the `UPDATE`. A failed attempt rolls the claim back with everything
-else, so the key stays usable for a genuine retry. (Code guide §*Idempotency*.)
-
-### Price integrity
-
-`priceAtPurchase` is copied onto the order line inside the transaction, read off the product row —
-never sent by the client. `POST /api/orders` accepts `{ productId, quantity }` and nothing else; a
-client that can send a price can buy anything for a cent. Because it's snapshotted, repricing a
-product doesn't rewrite what a customer was charged, and an order still totals what its own lines
-say a month later.
-
-Money is `Prisma.Decimal` via `.add()` and `.mul()`, never floats — binary floating point drifts by
-cents across a long cart, and the column is `Decimal(10,2)`.
-
-### Authorization depth
-
-`401` and `403` are not interchangeable: 401 means "you aren't authenticated" and ends the session,
-403 means "you are, and you still can't" and must not. Reversing them turns "you can't do that"
-into "you've been logged out".
-
-Middleware proves *who* (`requireAuth`) and *what role* (`requireAdmin`), but structurally cannot
-know whether a row belongs to the caller — so per-row ownership checks live in the handler, and
-`GET /api/orders/:id` returns 403 for another customer's order. A customer's list query is pinned to
-the id in their own token; `?userId=` is consulted only on the admin branch and *ignored* rather
-than rejected for customers, so no code path lets a customer's own filter widen their scope.
-
-### Row-level security with zero policies
-
-RLS is on for all six tables with **no policies at all**. That reads like a misconfiguration and is
-the correct posture: the database is Supabase-hosted, so every table in `public` is exposed through
-PostgREST and the client SDKs to anyone holding the anon key. RLS on with zero policies denies the
-`anon` and `authenticated` roles every row, closing that path completely.
-
-All traffic goes through the Express API, which connects as `postgres` — table owner and
-`BYPASSRLS` — so Prisma is unaffected; policies would only ever be consulted by a client that
-doesn't exist here. A permissive `USING (true)` policy would re-open exactly what this shuts. It's a
-migration rather than a dashboard click, so CI applies it too.
+Every page sits behind a login and there is deliberately **no shared demo account** — checkout
+decrements real stock, so a public login would leave the catalog sold out. Registering takes about
+ten seconds.
 
 ## Screenshots
 
-<!-- SCREENSHOT PLACEHOLDER 1 — catalog -->
-> _**[screenshot: the catalog at `/products`]** — capture the grid with all three stock states
-> visible at once: an in-stock item, a low-stock one ("1 LEFT" in amber), and a sold-out one struck
-> through._
+A walk through the buying flow the concurrency work sits under.
 
-<!-- SCREENSHOT PLACEHOLDER 2 — order detail -->
-> _**[screenshot: an order at `/orders/:id`]** — capture the line items showing `priceAtPurchase`
-> and the order total._
+| | |
+|---|---|
+| ![Catalog](docs/screenshots/01-catalog.png) | **Catalog** (`/products`) — card grid with all three stock states at once: in stock, `1 LEFT` (amber), and out of stock. Search and category filter are held in the URL. |
+| ![Product detail](docs/screenshots/02-product-detail.png) | **Product detail** — image, price, quantity, add to cart. "Price and stock are confirmed by the server at checkout." |
+| ![Cart](docs/screenshots/03-cart.png) | **Cart** (`/cart`) — client-side only; there is no cart API. It re-fetches each product on mount to surface stale-stock shortages without rewriting the quantity. |
+| ![Checkout](docs/screenshots/04-checkout.png) | **Checkout** (`/checkout`) — a cosmetic shipping + card form. Nothing here is sent: `POST /api/orders` receives `{ productId, quantity }` per line and nothing else. |
+| ![Order confirmation](docs/screenshots/05-order-detail.png) | **Order** (`/orders/:id`) — post-checkout confirmation and history detail in one page. Line items render `priceAtPurchase` and the product thumbnail. |
 
-## Running it locally
+## What this demonstrates
 
-Needs Node 22 and a PostgreSQL database. Two apps, run separately.
+Each of these is the reason a specific piece of the code looks the way it does. Deeper reasoning,
+as a numbered invariant list, is in **[CLAUDE.md](CLAUDE.md)**.
+
+- **Concurrency-safe stock.** Prisma runs at `READ COMMITTED`, so two transactions can both read
+  `stock = 1`, both pass an `if (stock < quantity)` check, and both decrement to `-1`. The fix is to
+  fold the condition *into* the write — `updateMany({ where: { id, stock: { gte: qty } }, data: {
+  stock: { decrement: qty } } })` — and treat a `count` of `0` as the lost race. **Verified:** a
+  test seeds `stock = 1`, fires two orders through `Promise.all`, and asserts the two statuses are
+  exactly `[201, 409]`, that one order row exists, and that final stock is `0`.
+- **Deadlock prevention by sorted lock acquisition.** Every path that updates multiple product rows
+  sorts by `productId` first, so all transactions take row locks in one global order and queue
+  instead of forming a cycle. **Measured over 40 concurrent two-item orders:** without the sort, 8
+  succeed and 32 die with Postgres deadlock errors; with it, 40 and 0.
+- **Idempotent order creation.** `POST /api/orders` requires an `Idempotency-Key` header (a UUID,
+  one per checkout attempt, reused across retries). The order transaction's *first* write claims
+  that key on a `@@unique([userId, key])` index; a concurrent or network-level retry loses that race
+  and replays the winner's stored response instead of placing a second order. The claim is a guarded
+  write, not a pre-flight `SELECT` — same reasoning as the stock guard.
+- **Money integrity.** `priceAtPurchase` is copied onto each order line *inside* the transaction,
+  read from the product row — the request body has no price field. Repricing a product never
+  rewrites what a past order was charged. Arithmetic uses `Prisma.Decimal` (`.add()`, `.mul()`),
+  never floats; the column is `Decimal(10,2)`.
+- **Row-level security with zero policies.** RLS is enabled on all six tables with **no policies at
+  all** — deliberate, not a misconfiguration. Supabase exposes every `public` table through
+  PostgREST to anyone holding the anon key; RLS on with no policies denies the `anon` and
+  `authenticated` roles every row. The API connects as `postgres` (table owner, `BYPASSRLS`), so
+  Prisma is unaffected. It ships as a migration, so CI applies it too.
+- **Login rate limiting.** `express-rate-limit` on `POST /api/auth/login` only — 5 attempts per
+  15-minute window, then `429`. Keyed on **IP + email**, not IP alone: a shared office or carrier
+  NAT IP would otherwise lock out everyone behind it after five tries, whereas IP+email throttles
+  the account actually under attack. Login returns an identical `401` for "unknown email" and "wrong
+  password", so an attacker can't cheaply learn which addresses are worth spraying.
+
+## Tech stack
+
+| Layer | Choice | Why it's this and not the obvious alternative |
+|---|---|---|
+| Runtime | Node 22, TypeScript **5.7** | Pinned: `ts-node@10.9.2` (run by `ts-node-dev`) crashes on the TypeScript 7 API (`ts.sys` undefined). `@types/node` pinned to 22.10 for the same reason. |
+| API | Express 5 | — |
+| ORM | Prisma **6** (`^6.16`) | Pinned off 7: Prisma 7 drops `datasource { url = env(...) }` from the schema and requires a `prisma.config.ts` plus a driver adapter — a deliberate migration, not a version bump. |
+| Validation | Zod 4 | Runs at the route boundary; every `ZodError` is rendered as one identical `400` by the error handler, so no route writes its own validation response. |
+| Auth | JWT (`jsonwebtoken`) + bcrypt (`bcryptjs`) | 1-day bearer token. `app.ts` exports the configured app with no `.listen()` so Supertest drives it without binding a port. |
+| Rate limiting | `express-rate-limit` 8 | Login route only; in-memory store. |
+| Database | PostgreSQL (Supabase), `Decimal(10,2)` for money | **Two pooler modes, not one.** `db.<ref>.supabase.co` is IPv6-only and Render has no outbound IPv6, so all traffic goes through Supavisor. Runtime uses transaction mode (`:6543`); migrations use session mode (`:5432`, via `DIRECT_URL`) because Prisma Migrate's session-level advisory lock can't be held over transaction pooling — against `:6543`, `migrate deploy` *hangs indefinitely* rather than erroring. |
+| Tests | Vitest + Supertest | Run against a real Postgres; each test deletes the rows it created, so the suite is order-independent and repeatable. |
+| Frontend | React 19, Vite 8, Tailwind 4, React Router 7, TanStack Query 5 | Its own `package.json` and TypeScript (`~6.0`) — a separate package, no workspace tool or root manifest. |
+| Deploy | API on Render, SPA on Vercel, DB on Supabase | `render.yaml` and `frontend/vercel.json` are committed; secrets are dashboard-only. See **[DEPLOYMENT.md](DEPLOYMENT.md)**. |
+
+## Architecture
+
+Two independently deployed apps in one repo (`backend/`, `frontend/`). The SPA holds a JWT in
+`localStorage` and sends it as a bearer token; **every real authorization decision is the API's**.
+Express middleware proves *who* (`requireAuth`) and *what role* (`requireAdmin`); per-row ownership —
+"is this your order?" — is checked in the handler, because middleware structurally can't know it.
+Prisma reaches Postgres through Supabase's transaction-mode pooler; migrations run through the
+session-mode pooler. RLS is on at the database with no policies, closing the direct
+PostgREST/anon-key path — the API's `postgres` role bypasses it.
+
+```mermaid
+flowchart LR
+    B["React SPA<br/>(Vercel)"] -->|"HTTPS · JWT bearer"| A["Express API<br/>(Render)<br/><br/>requireAuth · requireAdmin<br/>Zod · per-row ownership"]
+    A -->|"Prisma · DATABASE_URL<br/>Supavisor :6543 (transaction)"| DB[("PostgreSQL<br/>(Supabase)<br/><br/>RLS on · 0 policies<br/>API role = postgres (BYPASSRLS)")]
+    M["prisma migrate deploy"] -.->|"DIRECT_URL · Supavisor :5432 (session)"| DB
+```
+
+Request path inside the API: `middleware → routes (validate → business rules → DB) → lib/prisma.ts`,
+with any throw diverted to a single error handler that maps it to a status code.
+
+## Running locally
+
+Needs **Node 22** and a PostgreSQL database (local, or a free Supabase / Neon instance).
 
 ```bash
 git clone https://github.com/putanetwanthanasak/ecommerce_mini.git
-cd ecommerce_mini/backend
+cd ecommerce_mini
 
+# backend  →  http://localhost:4000
+cd backend
 npm install
-cp .env.example .env          # fill in DATABASE_URL, DIRECT_URL, JWT_SECRET
-
+cp .env.example .env            # fill DATABASE_URL, DIRECT_URL, JWT_SECRET
 npx prisma generate
-npx prisma migrate deploy     # applies committed migrations; never `migrate dev` on a real DB
-npm run dev                   # http://localhost:4000
-```
+npx prisma migrate deploy       # apply committed migrations
+npm run dev
 
-```bash
+# frontend →  http://localhost:5173   (separate terminal)
 cd ../frontend
 npm install
-cp .env.example .env          # VITE_API_URL=http://localhost:4000
-npm run dev                   # http://localhost:5173
+cp .env.example .env            # VITE_API_URL=http://localhost:4000
+npm run dev
 ```
 
-`npm run dev` on the API uses `--transpile-only` and does **no** type checking — code with type
-errors runs in dev and fails at build. Run `npx tsc --noEmit` before committing.
+**Environment variables** (names only — see each `.env.example`):
 
-`VITE_API_URL` fails in a way that hides itself: `src/lib/api.ts` throws at module load if it's
-missing, and because that throw is top-level the bundler eliminates the whole app while the build
-still **exits 0**. A broken bundle is ~224 KB of React with none of the app in it; a good one is
-~316 KB. Check content, not size — `grep -c "Sign in" dist/assets/*.js`.
+| App | Required | Optional |
+|---|---|---|
+| `backend/` | `DATABASE_URL`, `DIRECT_URL` (same value as `DATABASE_URL` locally), `JWT_SECRET` | `CORS_ORIGINS` (defaults to `http://localhost:5173`), `PORT` (4000), `NODE_ENV` |
+| `frontend/` | `VITE_API_URL` | — |
 
-### Tests
+**On seed data:** `npm run seed` only backfills `imageUrl` on the four demo products *if they
+already exist* — there is no catalog fixture in the repo, so a fresh database starts empty. Create
+categories and products through the API as an `ADMIN` (promoted directly in the DB) or via Prisma
+Studio (`npm run prisma:studio`).
+
+`npm run dev` on the API uses `--transpile-only` and does **no type checking** — run `npx tsc
+--noEmit` before committing. `VITE_API_URL` fails silently if unset: `src/lib/api.ts` throws at
+module load, the bundler treats the rest of the app as dead code, and the build still exits 0. Check
+content, not size — `grep -c "Sign in" frontend/dist/assets/*.js`.
+
+## Testing
 
 ```bash
 cd backend
-npm test                      # 21 tests, 4 files
-npx tsc --noEmit
+npm test            # 31 tests, 4 files (auth · jwt · orders · products)
+npx tsc --noEmit    # type check — CI runs this too
 ```
 
-Tests run against a real database and clean up the rows they create, so they're repeatable and
-order-independent. CI points them at an ephemeral Postgres.
+Tests hit a real Postgres and clean up their own rows, so they are repeatable and order-independent;
+CI points them at an ephemeral Postgres service container. The two most interesting both live in
+`orders.test.ts` and use `Promise.all` to issue genuinely concurrent requests:
 
-### If you use Supabase: three gotchas
+- **`never oversells under concurrency: two requests for the last unit`** — seeds `stock = 1`, fires
+  two orders at once, asserts the statuses are exactly `[201, 409]`, that exactly one order row
+  exists, and that final stock is `0`.
+- **`collapses two identical concurrent requests with the same key into one order`** — two
+  `POST /api/orders` sharing one `Idempotency-Key`, asserts a single order and identical responses.
 
-These cost real debugging time, and anyone following this setup will hit them.
+CI (`.github/workflows/ci.yml`) runs two parallel jobs: **backend** (Postgres service → `migrate
+deploy` → `tsc --noEmit` → Vitest) and **frontend** (`oxlint` → `tsc -b` + `vite build`). The
+frontend has no behavioural tests yet.
 
-**1. The direct connection host is IPv6-only.** `db.<project-ref>.supabase.co` has no A record, only
-AAAA, so any platform without outbound IPv6 — Render's free tier included — cannot reach it at all.
-Use the Supavisor pooler; note the username becomes `postgres.<project-ref>`.
+## What I'd add with more time
 
-**2. `?pgbouncer=true` is required on the pooled URL, and omitting it fails only under load.**
-Without it Prisma's prepared statements collide when the pooler reuses a server connection across
-sessions: `ERROR 42P05: prepared statement "s13" already exists`. A single-client test passes
-happily — 12/12 queries succeeded — while 6 concurrent clients produced 24 failures out of 36. That
-combination is what makes it dangerous: fine in dev, broken in production.
-
-**3. `DIRECT_URL` must be the session-mode port, or `migrate deploy` hangs instead of failing.**
-Prisma Migrate takes a session-level advisory lock that transaction-mode pooling can't hold. Against
-port 6543 it doesn't error — it sat for five minutes with no output. `DIRECT_URL` points at 5432
-(session mode) so migrations get that lock while the app keeps the pooled connection.
-
-```
-DATABASE_URL="postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres"
-```
-
-Render blueprint, Vercel SPA rewrite and CORS specifics: **[DEPLOYMENT.md](DEPLOYMENT.md)**.
-
-## Known limitations
-
-Understood tradeoffs, not oversights:
-
-- **Rate limiting is login-only and in-memory.** `POST /api/auth/login` is capped at 5 attempts per
-  IP+email per 15 min (`express-rate-limit`, 429). `/register` is not limited, and the counter store
-  is per-process — a multi-instance deploy would need a shared one (Redis).
+- **Rate limiting is login-only and in-memory.** `/register` is unthrottled (a weaker vector — no
+  secret to guess); the counter store is per-process, so a multi-instance deploy would need Redis.
 - **No refresh tokens.** A 1-day JWT can't be revoked; logout is client-side only. The token lives
   in `localStorage` — an accepted XSS exposure, with httpOnly cookies as the production answer.
-- **Idempotency keys are not pruned.** `POST /api/orders` dedupes on a required `Idempotency-Key`
-  header (a concurrent or network-level retry returns the first order instead of placing a second),
-  storing each key and its response in `idempotency_keys`. Those rows are safe to delete after a few
-  hours, but no job does it yet.
-- **`Decimal` serializes as a JSON string** with trailing zeros dropped — `38.00` arrives as `"38"`,
-  `32.50` as `"32.5"`. That's Prisma's behaviour; one frontend module owns the formatting.
-- **No admin UI**, though the `ADMIN` role is real and API-enforced. Admins are promoted directly in
-  the database; operators use Prisma Studio.
-- **Product images are URL-only.** `Product.imageUrl` holds a URL (the demo products point at a
-  public Supabase Storage bucket); there is no upload pipeline, so an admin sets the URL directly.
-  The catalog and detail views fall back to a neutral block when it is absent.
-- **No payment step.** Checkout places an order; `PAID` is a status nothing sets from the UI.
-- **No status-transition rules beyond cancel.** `SHIPPED → PENDING` is currently legal.
-- **No frontend tests.** CI lints and type checks it; the cart and checkout logic was factored into
-  pure modules so a suite can start there without a DOM.
+- **No payment step.** Checkout's shipping + card form is cosmetic (a card ending `0000` previews a
+  decline, entirely client-side); `PAID` is a status nothing sets from the UI.
+- **No admin UI.** The `ADMIN` role is real and API-enforced, but operators use Prisma Studio and
+  admins are promoted directly in the database. Customers can read orders but can't cancel one from
+  the UI.
+- **Product images are URL-only.** `Product.imageUrl` is a validated URL string with no upload
+  pipeline; a dead link falls back to a neutral block.
+- **Idempotency keys aren't pruned.** Each key and its response is stored; the rows are safe to
+  delete after a few hours, but no job does it.
+- **No status-transition rules beyond cancel** (`SHIPPED → PENDING` is currently legal) and **no
+  structured logging** (`console.error` only; production wants request IDs).
+- **No frontend tests.** The cart and checkout logic is factored into DOM-free pure modules
+  (`cart/cartOps.ts`, `orders/checkoutError.ts`, `lib/money.ts`) as the place a suite would start.
+
+## License & contact
+
+Personal portfolio project — no open-source license is attached, and it isn't intended for reuse.
+
+Built by [**@putanetwanthanasak**](https://github.com/putanetwanthanasak). Deeper docs live in the
+repo: **[CLAUDE.md](CLAUDE.md)** (the authoritative invariant list) and
+**[DEPLOYMENT.md](DEPLOYMENT.md)** (Render / Vercel / Supabase specifics).
