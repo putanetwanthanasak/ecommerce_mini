@@ -83,10 +83,20 @@ export function fetchOrders(params: OrderListParams): Promise<OrderListResponse>
   return apiRequest<OrderListResponse>(`/api/orders?${query.toString()}`);
 }
 
-export function createOrder(input: CreateOrderInput): Promise<Order> {
+/**
+ * Place an order.
+ *
+ * `idempotencyKey` is a UUID the caller generates ONCE per checkout attempt and
+ * reuses across every retry of that attempt (see CheckoutPage). The backend
+ * dedupes on it: a second POST with the same key returns the first order instead
+ * of creating another and decrementing stock twice. Network retries — which the
+ * in-flight button guard never sees — are covered by this, not by the button.
+ */
+export function createOrder(input: CreateOrderInput, idempotencyKey: string): Promise<Order> {
   return apiRequest<{ order: Order }>("/api/orders", {
     method: "POST",
     body: input,
+    headers: { "Idempotency-Key": idempotencyKey },
   }).then((res) => res.order);
 }
 

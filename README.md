@@ -76,6 +76,16 @@ order and queue instead of colliding. Measured over **40 concurrent two-item ord
 A lock-ordering guarantee honoured by only part of a codebase isn't a guarantee, so the order and
 cancel paths both sort. (Code guide §10 *Lock rows in a globally consistent order*.)
 
+### Idempotent order creation
+
+`POST /api/orders` requires an `Idempotency-Key` header (a UUID, generated once per checkout attempt
+and reused across retries). The order transaction's first write claims that key on a
+`@@unique([userId, key])` index; a concurrent or network-level retry loses that race, and once the
+winner commits the loser replays the winner's stored response instead of placing a second order and
+decrementing stock twice. The claim is a guarded write, not a pre-flight `SELECT` — the same reason
+the stock check is folded into the `UPDATE`. A failed attempt rolls the claim back with everything
+else, so the key stays usable for a genuine retry. (Code guide §*Idempotency*.)
+
 ### Price integrity
 
 `priceAtPurchase` is copied onto the order line inside the transaction, read off the product row —
@@ -197,9 +207,10 @@ Understood tradeoffs, not oversights:
 - **No rate limiting.** `/api/auth/login` can be brute-forced.
 - **No refresh tokens.** A 1-day JWT can't be revoked; logout is client-side only. The token lives
   in `localStorage` — an accepted XSS exposure, with httpOnly cookies as the production answer.
-- **No idempotency key on order creation.** Two identical concurrent `POST`s create two orders and
-  decrement stock twice. Only the client's in-flight guard prevents it, which is why checkout offers
-  no retry button.
+- **Idempotency keys are not pruned.** `POST /api/orders` dedupes on a required `Idempotency-Key`
+  header (a concurrent or network-level retry returns the first order instead of placing a second),
+  storing each key and its response in `idempotency_keys`. Those rows are safe to delete after a few
+  hours, but no job does it yet.
 - **`Decimal` serializes as a JSON string** with trailing zeros dropped — `38.00` arrives as `"38"`,
   `32.50` as `"32.5"`. That's Prisma's behaviour; one frontend module owns the formatting.
 - **No admin UI**, though the `ADMIN` role is real and API-enforced. Admins are promoted directly in

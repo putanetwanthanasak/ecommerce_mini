@@ -91,6 +91,9 @@ export async function destroyFixtures(ids: {
     },
   });
   await prisma.order.deleteMany({ where: { userId: { in: userIds } } });
+  // idempotency_keys has an onDelete: Restrict FK to users, so these have to go
+  // before the user rows or destroyFixtures fails with a constraint error.
+  await prisma.idempotencyKey.deleteMany({ where: { userId: { in: userIds } } });
   await prisma.product.deleteMany({
     where: { OR: [{ id: { in: productIds } }, { categoryId: { in: categoryIds } }] },
   });
