@@ -161,11 +161,10 @@ export function OrderDetailPage() {
         <ul className="flex flex-col divide-y divide-hairline">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center gap-4 py-4">
-              {/* Order lines carry no image URL from the API, so this is always
-                  the neutral placeholder — kept for layout parity with the cart
-                  and checkout, and it fills in on its own if the field is added. */}
+              {/* The product's current catalog image; a neutral block when it's
+                  null or the URL fails to load. */}
               <ProductImage
-                src={null}
+                src={item.product.imageUrl}
                 alt=""
                 className="size-16 shrink-0 rounded-control"
               />
