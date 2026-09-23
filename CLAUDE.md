@@ -290,7 +290,7 @@ Runtime uses TRANSACTION mode (port 6543, `?pgbouncer=true`). Migrations must NO
 
 There is no automated release step: `preDeployCommand` fails blueprint validation on Render's free tier ("pre-deploy command is not supported for free tier services"), so `render.yaml` has none and migrations are applied by hand before deploying — `cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy`. Do not fold that into `buildCommand` to automate it: builds run on branches, can run concurrently, and are retried, so DDL there can hit a live database at a moment nobody chose, possibly twice at once.
 
-Verified through the transaction-mode pooler rather than assumed: all 21 tests pass including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
+Verified through the transaction-mode pooler rather than assumed: all 21 tests the suite had at the time pass (it is 31 now; the 10 added since — idempotency and login rate limit — have not been re-run through the pooler), including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
 
 2. DIRECT_URL is required once declared
 
