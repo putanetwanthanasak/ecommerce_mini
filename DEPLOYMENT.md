@@ -12,6 +12,11 @@ that lived there; it just has its own address now.
 Live: **https://ecommerce-mini-lyart.vercel.app** (SPA) talking to
 **https://ecommerce-backend-7u06.onrender.com** (API).
 
+> **Docker is for local development only.** `backend/Dockerfile` and `docker-compose.yml` exist so
+> the API can run without a Supabase account (README, "Run locally with Docker"). Render does not
+> use them: it still builds and runs the backend on its native Node runtime from `render.yaml`, and
+> migrations are still applied by hand via `DIRECT_URL`, as described below.
+
 Backend on **Render**, frontend on **Vercel**, database stays on the existing
 **Supabase** instance. Two committed config files make this reproducible:
 `render.yaml` (repo root) and `frontend/vercel.json`.

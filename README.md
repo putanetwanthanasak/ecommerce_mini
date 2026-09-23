@@ -145,6 +145,47 @@ Studio (`npm run prisma:studio`).
 module load, the bundler treats the rest of the app as dead code, and the build still exits 0. Check
 content, not size — `grep -c "Sign in" frontend/dist/assets/*.js`.
 
+## Run locally with Docker
+
+The quickest path to a running API — no Node install and no Supabase account. Docker is **for local
+development only**. Production still runs on Render's native Node runtime (see
+[DEPLOYMENT.md](DEPLOYMENT.md)), and the frontend is not containerised.
+
+**Prerequisite:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker
+Engine with the Compose plugin).
+
+```bash
+git clone https://github.com/putanetwanthanasak/ecommerce_mini.git
+cd ecommerce_mini
+docker compose up --build        # API → http://localhost:4000
+```
+
+Three services start in order: `db` (Postgres 16) → `migrate` (applies the committed migrations and
+the seed, then exits 0) → `backend` (the compiled API, running as a non-root user). Every credential
+is a fake, dev-only value inlined in `docker-compose.yml`; `backend/.env` is never read and never
+enters the image.
+
+```bash
+curl "http://localhost:4000/api/products?limit=1"   # 200, empty catalog on a fresh DB
+```
+
+**Point the frontend at it:** the frontend still runs on the Vite dev server. In `frontend/.env`, set
+`VITE_API_URL=http://localhost:4000`, then run `npm run dev` in `frontend/`. The container's
+`CORS_ORIGINS` already allows `http://localhost:5173`.
+
+**Database access:** Postgres is published on host port **5433** (not 5432, to avoid clashing with a
+local install) — `postgresql://postgres:dev-only-password@localhost:5433/ecommerce`. It works for
+Prisma Studio or psql, or for running the test suite against the container instead of a cloud DB:
+
+```bash
+cd backend
+DATABASE_URL="postgresql://postgres:dev-only-password@localhost:5433/ecommerce?schema=public" \
+DIRECT_URL="$DATABASE_URL" JWT_SECRET=local-test-secret NODE_ENV=test npm test
+```
+
+**Reset:** `docker compose down -v` stops everything and deletes the database volume. The next `up`
+starts from an empty database and re-runs every migration.
+
 ## Testing
 
 ```bash
