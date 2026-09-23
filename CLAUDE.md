@@ -18,12 +18,14 @@ This is a monorepo. Everything backend lives under backend/ — paths in this do
 │   ├── prisma/
 │   ├── package.json  # backend deps; there is no root package.json
 │   ├── .env          # never committed
+│   ├── Dockerfile    # local dev only — see backend invariant 11
 │   └── CODE_GUIDE.md
 ├── frontend/         # Vite + React + TS SPA (auth, catalog, cart/checkout, orders)
 │   ├── src/
 │   ├── package.json  # its own deps, its own TypeScript
 │   └── .env          # VITE_API_URL, never committed
-├── .github/          # CI at the root: parallel backend and frontend jobs
+├── .github/          # CI at the root: parallel backend, frontend and docker jobs
+├── docker-compose.yml # local dev: db + migrate + backend, no Supabase needed
 ├── .gitignore
 ├── CLAUDE.md
 └── README.md
@@ -188,6 +190,16 @@ The header is a UUID, required (missing or non-UUID → 400), that the client ge
 
 `src/middleware/rateLimiter.ts` (express-rate-limit) throttles login to 5 attempts per 15-minute window, keyed on **IP + email** and applied only to that route. IP-only would let one NAT'd office or carrier IP lock out everyone behind it; IP+email throttles the real attack (hammering one known account) without that collateral, and the identical-401 for unknown-vs-wrong-password (see *Auth responses*) is what stops an attacker cheaply finding emails to spray instead. The 429 body is the app's one `{ error }` shape — no new envelope. `standardHeaders: true`, `legacyHeaders: false`. The store is in-memory and held in the module so tests can reset it between cases (`resetLoginRateLimiter()`); a multi-instance deploy would need a shared store, and `/register` (a weaker vector) is a deliberate follow-up.
 
+11. Migrations never run inside the production image
+
+Locally they run via the compose `migrate` service; in production they are applied manually via DIRECT_URL (session pooler) per DEPLOYMENT.md.
+
+Docker is for local development only (`docker compose up --build` at the repo root) — Render still runs the native Node runtime from `render.yaml` and never reads `backend/Dockerfile`. The Dockerfile has three stages that matter: `build` (full install, `prisma generate`, `tsc`), `prod-deps` (pruned), and `runtime` (`dist/` + pruned `node_modules` + `schema.prisma`, as the non-root `node` user, `CMD node dist/index.js`). The runtime image has no migration step and cannot grow one by accident: `npm prune --omit=dev` keeps the Prisma CLI and TypeScript because `@prisma/client` peer-depends on both, so `prod-deps` deletes them explicitly (~126 MB; the server only needs the generated client). The compose `migrate` service is a one-shot built from `target: build` — the unpruned stage — because that is where the *pinned* Prisma CLI lives; pointing it at a pruned stage makes `npx prisma` download the latest major instead. It runs `migrate deploy` then the seed, and `backend` waits on `service_completed_successfully`.
+
+The compose DB URLs must NOT use `?pgbouncer=true`. Both `DATABASE_URL` and `DIRECT_URL` point straight at the `db` container; the pooler flags and the transaction/session split in *Deployment* apply only to Supabase. `DIRECT_URL` is still set (P1012 otherwise), to the same value, as in CI.
+
+The `db` healthcheck is `pg_isready -h localhost`, over TCP on purpose. On first boot the postgres image runs a temporary socket-only init server and restarts it; a socket check reports healthy in that window and `migrate` fails with `P1001` (observed on the first run). The compose credentials (`dev-only-password`, `dev-only-jwt-secret-...`) are fake and inline; the compose file never reads `backend/.env`, and `backend/.dockerignore` keeps `.env*` out of the build context entirely.
+
 Frontend invariants
 
 Same idea as above: these encode decisions that are easy to undo by accident.
@@ -278,7 +290,7 @@ Runtime uses TRANSACTION mode (port 6543, `?pgbouncer=true`). Migrations must NO
 
 There is no automated release step: `preDeployCommand` fails blueprint validation on Render's free tier ("pre-deploy command is not supported for free tier services"), so `render.yaml` has none and migrations are applied by hand before deploying — `cd backend && DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy`. Do not fold that into `buildCommand` to automate it: builds run on branches, can run concurrently, and are retried, so DDL there can hit a live database at a moment nobody chose, possibly twice at once.
 
-Verified through the transaction-mode pooler rather than assumed: all 21 tests pass including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
+Verified through the transaction-mode pooler rather than assumed: all 21 tests the suite had at the time pass (it is 31 now; the 10 added since — idempotency and login rate limit — have not been re-run through the pooler), including the concurrent-order race, an interactive `$transaction()` stays pinned to one `txid`, and `current_user` is still `postgres` with BYPASSRLS — so invariants 1, 2 and 8 all survive pooling.
 
 2. DIRECT_URL is required once declared
 
@@ -330,6 +342,7 @@ backend/src/app.ts exports the app precisely so Supertest can import it without 
 Tests must be order-independent and repeatable: clean up rows created by each test. A suite that only passes in one order is a broken suite.
 DATABASE_URL comes from the environment (backend/.env locally, job-level env in CI). Never hardcode the Supabase URL — CI points at an ephemeral Postgres service container.
 CI is .github/workflows/ci.yml at the repo root, with two independent jobs that run in parallel: backend (Postgres service, migrate deploy, tsc --noEmit, vitest) and frontend (lint, build). Neither needs the other — a frontend type error and a backend test failure are separate signals, and chaining them would hide one behind the other.
+A third, equally independent job, docker, builds the compose stack, asserts `migrate` exited 0, curls `/api/products?limit=1`, checks the runtime image runs as `node` with no `src/` or `.env`, and tears down with `down -v`. backend and frontend are required status checks under branch protection on main — do not rename them; add new jobs beside them.
 Each job sets defaults.run.working-directory. That does NOT apply to action inputs, so setup-node's npm cache names backend/package-lock.json or frontend/package-lock.json explicitly.
 The frontend job must set VITE_API_URL. Without it the bundler tree-shakes the whole app away (see frontend invariant 3) and the build passes on an empty bundle.
 The concurrent-order test (two requests, stock = 1, expect exactly one 201 and one 409) covers the single most important behavior here. If it turns out flaky in CI, mark it .skip with a comment explaining why — do not delete it.

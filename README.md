@@ -135,15 +135,59 @@ npm run dev
 | `backend/` | `DATABASE_URL`, `DIRECT_URL` (same value as `DATABASE_URL` locally), `JWT_SECRET` | `CORS_ORIGINS` (defaults to `http://localhost:5173`), `PORT` (4000), `NODE_ENV` |
 | `frontend/` | `VITE_API_URL` | — |
 
-**On seed data:** `npm run seed` only backfills `imageUrl` on the four demo products *if they
-already exist* — there is no catalog fixture in the repo, so a fresh database starts empty. Create
-categories and products through the API as an `ADMIN` (promoted directly in the DB) or via Prisma
-Studio (`npm run prisma:studio`).
+**On seed data:** `npm run seed` creates the demo catalog — the two categories and four products
+the live site serves, with the same names, prices, descriptions and images — on a database that
+doesn't have it yet. It is idempotent: a product that already exists (matched by name) only has its
+`imageUrl` re-set, never its stock or price, so re-running it, or running it against a database with
+real orders, creates no duplicates. Stock levels are local-dev starting values, not production's.
+Anything beyond the demo catalog is created through the API as an `ADMIN` (promoted directly in the
+DB) or via Prisma Studio (`npm run prisma:studio`).
 
 `npm run dev` on the API uses `--transpile-only` and does **no type checking** — run `npx tsc
 --noEmit` before committing. `VITE_API_URL` fails silently if unset: `src/lib/api.ts` throws at
 module load, the bundler treats the rest of the app as dead code, and the build still exits 0. Check
 content, not size — `grep -c "Sign in" frontend/dist/assets/*.js`.
+
+## Run locally with Docker
+
+The quickest path to a running API — no Node install and no Supabase account. Docker is **for local
+development only**. Production still runs on Render's native Node runtime (see
+[DEPLOYMENT.md](DEPLOYMENT.md)), and the frontend is not containerised.
+
+**Prerequisite:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker
+Engine with the Compose plugin).
+
+```bash
+git clone https://github.com/putanetwanthanasak/ecommerce_mini.git
+cd ecommerce_mini
+docker compose up --build        # API → http://localhost:4000
+```
+
+Three services start in order: `db` (Postgres 16) → `migrate` (applies the committed migrations and
+the seed, then exits 0) → `backend` (the compiled API, running as a non-root user). Every credential
+is a fake, dev-only value inlined in `docker-compose.yml`; `backend/.env` is never read and never
+enters the image.
+
+```bash
+curl "http://localhost:4000/api/products"   # 200, the seeded 4-product demo catalog
+```
+
+**Point the frontend at it:** the frontend still runs on the Vite dev server. In `frontend/.env`, set
+`VITE_API_URL=http://localhost:4000`, then run `npm run dev` in `frontend/`. The container's
+`CORS_ORIGINS` already allows `http://localhost:5173`.
+
+**Database access:** Postgres is published on host port **5433** (not 5432, to avoid clashing with a
+local install) — `postgresql://postgres:dev-only-password@localhost:5433/ecommerce`. It works for
+Prisma Studio or psql, or for running the test suite against the container instead of a cloud DB:
+
+```bash
+cd backend
+DATABASE_URL="postgresql://postgres:dev-only-password@localhost:5433/ecommerce?schema=public" \
+DIRECT_URL="$DATABASE_URL" JWT_SECRET=local-test-secret NODE_ENV=test npm test
+```
+
+**Reset:** `docker compose down -v` stops everything and deletes the database volume. The next `up`
+starts from an empty database and re-runs every migration.
 
 ## Testing
 

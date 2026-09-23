@@ -1,0 +1,73 @@
+# Local development: Postgres + migrations + the backend API, no Supabase account
+# needed. `docker compose up --build`, then the API is on http://localhost:4000.
+#
+# NOT production. Render runs the native Node runtime (render.yaml) against
+# Supabase, and nothing here is read by it. Every credential below is a fake,
+# dev-only value inlined on purpose — this file never reads backend/.env.
+
+x-db-env: &db-env
+  # Both URLs point straight at the `db` container. No ?pgbouncer=true: that flag
+  # exists for Supabase's transaction-mode pooler (DEPLOYMENT.md), and there is
+  # no pooler here. DIRECT_URL must still be set — Prisma fails with P1012
+  # without it — and, as in CI, it is simply the same direct connection.
+  DATABASE_URL: postgresql://postgres:dev-only-password@db:5432/ecommerce?schema=public
+  DIRECT_URL: postgresql://postgres:dev-only-password@db:5432/ecommerce?schema=public
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev-only-password
+      POSTGRES_DB: ecommerce
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Host port 5433, not 5432, so it does not collide with a Postgres already
+    # installed on the machine. Useful for `npx prisma studio` or psql.
+    ports:
+      - "5433:5432"
+    # -h localhost matters. On first boot the image runs a temporary init server
+    # that listens on the unix socket only, then restarts it; a socket check
+    # reports healthy during that window and `migrate` fails with P1001
+    # (observed). The temporary server has no TCP listener, so checking over TCP
+    # only passes once the real one is up.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres -d ecommerce"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # One-shot: applies migrations, runs the seed, exits. Built from the `build`
+  # stage because that is where the pinned Prisma CLI and ts-node live — the
+  # runtime image deliberately has no migration step (CLAUDE.md invariant 11).
+  # On a fresh volume the seed creates the demo catalog (2 categories, 4
+  # products); on later `up`s it finds them and creates nothing (prisma/seed.ts).
+  migrate:
+    build:
+      context: ./backend
+      target: build
+    environment:
+      <<: *db-env
+    command: ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      <<: *db-env
+      JWT_SECRET: dev-only-jwt-secret-not-for-production
+      PORT: "4000"
+      # The Vite dev server, so `npm run dev` in frontend/ works against this.
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "4000:4000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
