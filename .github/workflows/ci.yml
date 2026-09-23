@@ -126,3 +126,53 @@ jobs:
       # separate tsc --noEmit step.
       - name: Build
         run: npm run build
+
+  # Builds the local-dev Docker setup and proves it serves requests. Separate
+  # from, and parallel to, the two jobs above: those are required status checks
+  # on main and stay exactly as they are. Docker is for local development only —
+  # nothing here is deployed (Render uses the native Node runtime).
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # db → migrate (one-shot, must exit 0) → backend, ordered by depends_on
+      # conditions in docker-compose.yml. If migrate fails, `up` fails here.
+      - name: Build and start the stack
+        run: docker compose up -d --build
+
+      - name: Migrate exited cleanly
+        run: |
+          code=$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose ps -aq migrate)")
+          echo "migrate exit code: $code"
+          test "$code" = "0"
+
+      # The backend container is "running" before Express has bound the port;
+      # poll until it answers, then make the assertion that counts with -f.
+      - name: Wait for the API
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "http://localhost:4000/api/products?limit=1" > /dev/null && exit 0
+            sleep 2
+          done
+          echo "API did not become ready within 60s"
+          exit 1
+
+      - name: Smoke test
+        run: curl -f "http://localhost:4000/api/products?limit=1"
+
+      - name: Runtime image runs as non-root with no source or secrets
+        run: |
+          image=$(docker compose images -q backend)
+          test "$(docker run --rm --entrypoint whoami "$image")" = "node"
+          docker run --rm --entrypoint sh "$image" -c 'test ! -e src && test ! -e .env'
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
