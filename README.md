@@ -135,10 +135,13 @@ npm run dev
 | `backend/` | `DATABASE_URL`, `DIRECT_URL` (same value as `DATABASE_URL` locally), `JWT_SECRET` | `CORS_ORIGINS` (defaults to `http://localhost:5173`), `PORT` (4000), `NODE_ENV` |
 | `frontend/` | `VITE_API_URL` | — |
 
-**On seed data:** `npm run seed` only backfills `imageUrl` on the four demo products *if they
-already exist* — there is no catalog fixture in the repo, so a fresh database starts empty. Create
-categories and products through the API as an `ADMIN` (promoted directly in the DB) or via Prisma
-Studio (`npm run prisma:studio`).
+**On seed data:** `npm run seed` creates the demo catalog — the two categories and four products
+the live site serves, with the same names, prices, descriptions and images — on a database that
+doesn't have it yet. It is idempotent: a product that already exists (matched by name) only has its
+`imageUrl` re-set, never its stock or price, so re-running it, or running it against a database with
+real orders, creates no duplicates. Stock levels are local-dev starting values, not production's.
+Anything beyond the demo catalog is created through the API as an `ADMIN` (promoted directly in the
+DB) or via Prisma Studio (`npm run prisma:studio`).
 
 `npm run dev` on the API uses `--transpile-only` and does **no type checking** — run `npx tsc
 --noEmit` before committing. `VITE_API_URL` fails silently if unset: `src/lib/api.ts` throws at
@@ -166,7 +169,7 @@ is a fake, dev-only value inlined in `docker-compose.yml`; `backend/.env` is nev
 enters the image.
 
 ```bash
-curl "http://localhost:4000/api/products?limit=1"   # 200, empty catalog on a fresh DB
+curl "http://localhost:4000/api/products"   # 200, the seeded 4-product demo catalog
 ```
 
 **Point the frontend at it:** the frontend still runs on the Vite dev server. In `frontend/.env`, set

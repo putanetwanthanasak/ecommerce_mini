@@ -40,8 +40,8 @@ services:
   # One-shot: applies migrations, runs the seed, exits. Built from the `build`
   # stage because that is where the pinned Prisma CLI and ts-node live — the
   # runtime image deliberately has no migration step (CLAUDE.md invariant 11).
-  # The seed only fills imageUrl on existing demo rows, so on a fresh database it
-  # is a logged no-op.
+  # On a fresh volume the seed creates the demo catalog (2 categories, 4
+  # products); on later `up`s it finds them and creates nothing (prisma/seed.ts).
   migrate:
     build:
       context: ./backend
