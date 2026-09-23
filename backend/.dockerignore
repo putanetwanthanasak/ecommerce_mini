@@ -1,0 +1,17 @@
+# Secrets never enter the build context, so no layer can contain them.
+.env
+.env.*
+
+# Rebuilt inside the image; a host copy would be the wrong platform (Windows).
+node_modules
+dist
+
+# Not needed to build or run.
+.git
+coverage
+*.log
+CODE_GUIDE.md
+src/__tests__
+vitest.config.mts
+Dockerfile
+.dockerignore
